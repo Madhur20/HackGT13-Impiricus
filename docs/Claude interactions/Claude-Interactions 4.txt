@@ -1,0 +1,213 @@
+# Doctor Connect — Component Design
+
+*Face 2 of Delta. Co-lead demo surface, fully built consult flow. This document supersedes the free-text version discussed earlier — the categorical, prevention-by-design architecture is the one to build. See `delta-overall-design.md` for the shared engine and data model this depends on.*
+
+---
+
+## 1. What It Actually Does, Precisely
+
+A doctor assembles a peer-consult question **entirely from structured selections** — never free-typed prose — gets matched to an opted-in peer by evidence-grounded similarity, receives a structured response, and can optionally move to an off-platform relationship via a double-opt-in handoff. No patient-identifying content is possible in the question by construction; the response has one small, filtered, capped free-text field.
+
+---
+
+## 2. The Categorical Taxonomy (hardcode these exact lists for the demo)
+
+```python
+DRUG_CLASSES = [
+    "GLP-1_receptor_agonists", "SGLT2_inhibitors", "biologics_TNF_inhibitors",
+    "biologics_IL_inhibitors", "DOACs", "statins_high_intensity",
+    # ~10-15 total, chosen to match whatever the seeded DoctorProfiles cover
+]
+
+QUESTION_TYPES = [
+    "dosing_titration", "side_effect_management", "drug_interaction",
+    "switching_therapy", "monitoring_protocol", "administration_formulation",
+]
+
+AGE_BRACKETS = ["pediatric", "adult_18_40", "adult_40_65", "geriatric_65_plus"]
+
+COMORBIDITY_TAGS = [
+    "renal_impairment", "hepatic_impairment", "pregnancy",
+    "cardiac_disease", "diabetes", "none_or_other",
+]
+```
+
+**Governed expansion path (the answer to "what if my case doesn't fit"):** every selection of `none_or_other` for comorbidity is logged with a free-text *suggestion* field, reviewed in batch by Impiricus's own team, and promoted to a real tag if it recurs. This is a real, statable design, not just a hackathon shortcut — it belongs in the pitch as the answer to "how does this handle edge cases without becoming an open text box."
+
+---
+
+## 3. Question Assembly (Template Engine, Not Free Text)
+
+```python
+QUESTION_TEMPLATES = {
+    "dosing_titration": "How do peers approach {drug_class} titration in {age_bracket} patients{comorbidity_clause}?",
+    "side_effect_management": "How do peers manage {side_effect_focus} in {age_bracket} patients on {drug_class}{comorbidity_clause}?",
+    # one template per question_type
+}
+
+def assemble_question(selections: ConsultSelections) -> str:
+    comorbidity_clause = f" with {format_tags(selections.comorbidity_tags)}" \
+                          if selections.comorbidity_tags != ["none_or_other"] else ""
+    template = QUESTION_TEMPLATES[selections.question_type]
+    return template.format(
+        drug_class=humanize(selections.drug_class),
+        age_bracket=humanize(selections.age_bracket),
+        comorbidity_clause=comorbidity_clause,
+    )
+```
+
+**Critical property:** the doctor never types into this string. They pick from dropdowns, the system renders the sentence, and the doctor's only action on the text itself is *approve* or *go back and change a selection*. There is no code path where arbitrary characters reach this field — this is the actual mechanism behind the "structural guarantee, not a probabilistic one" claim from the pitch, and it's worth being able to point at this exact function if asked how it's enforced.
+
+---
+
+## 4. Matching Algorithm
+
+```python
+def find_matches(consult: ConsultRequest, candidate_pool: list[DoctorProfile]) -> list[Match]:
+    query_vector = build_tag_vector(consult.drug_class, consult.age_bracket, consult.comorbidity_tags)
+    opted_in_candidates = [
+        d for d in candidate_pool
+        if d.interaction_data["engagement_history_opt_in"]
+        and d.interaction_data["drug_class_volume"].get(consult.drug_class, 0) > EXPERIENCE_FLOOR
+    ]
+    scored = [
+        (d, compute_similarity(query_vector, d.profile_vector, dims=[consult.drug_class]))
+        for d in opted_in_candidates
+    ]
+    return sorted(scored, key=lambda x: x[1].score, reverse=True)[:TOP_K]
+```
+
+This is the same `delta_engine.similarity.compute_similarity` call Practice Mirror uses, with a different `dims` scope and an added opt-in/experience-floor filter — same engine, different gate. `EXPERIENCE_FLOOR` (e.g., "at least moderate volume in this drug class") is what makes a match evidence-grounded rather than "both doctors happened to sign up," which is the actual differentiator from a generic directory like Doximity — say this explicitly if the comparison comes up.
+
+### 4.1 "Why this match" explanation
+Calls `delta_engine.explain.generate_explanation` with `context={"product": "doctor_connect", "match_fields": [...]}` — produces something like: *"High-volume prescriber of this drug class, similar specialty and regional practice pattern."* Never invents rapport ("you'll get along great") — strictly grounded in the fields that drove the score.
+
+---
+
+## 5. Response Flow and the One Free-Text Field
+
+Responding peer selects from pre-set response patterns:
+
+```python
+RESPONSE_PATTERNS = {
+    "dosing_titration": "Typical approach: start at {dose_bracket}, titrate over {timeframe}, monitor for {monitoring_focus}.",
+    # dose_bracket, timeframe, monitoring_focus are themselves dropdowns from
+    # small controlled vocabularies, not free text
+}
+```
+
+Plus **one optional, capped (≈200 character) free-text field** for a clarifying nuance. This is the only free text in the entire product, and it gets two layers, in this order:
+
+1. **Tier 1 — deterministic pattern check** (regex-based, modeled on HIPAA Safe Harbor's 18 identifier categories): blocks anything matching a name-pattern, an exact date, a geographic detail finer than state, or a number formatted like an age over 89 or an MRN.
+2. **Tier 2 — Gemini contextual check**: a single classification call — *"does this text read as a specific patient narrative, even without a hard identifier?"* — for the softer cases Tier 1 structurally cannot catch ("she was diagnosed last week and her sister has the same condition").
+
+```python
+def validate_free_text(text: str) -> ValidationResult:
+    if tier1_hard_rule_match(text):
+        return ValidationResult(blocked=True, reason="possible_identifier_pattern")
+    if tier2_gemini_classify(text) == "patient_narrative":
+        return ValidationResult(blocked=True, reason="reads_as_specific_case")
+    return ValidationResult(blocked=True_ok=True)
+```
+
+If blocked, the sender sees the specific reason and can rephrase — same pattern as the demo beat described in the pitch (show it catching something live, then show the corrected version going through). **This filter exists only as a second layer on a field that's already capped and optional** — it is explicitly not the primary defense, and the design docs and pitch should never imply otherwise.
+
+---
+
+## 6. The Double Opt-In Handoff (State Machine)
+
+```
+matched ──> consult_answered ──> [either doctor taps "Continue this conversation"]
+                                        │
+                                        ▼
+                              continue_requested_by_X
+                                        │
+                         [other doctor sees request, must independently confirm]
+                                        │
+                              ┌─────────┴─────────┐
+                              ▼                   ▼
+                      both_confirmed        declined_or_ignored
+                              │                   │
+                              ▼                   ▼
+                    contacts_revealed      (state ends, no reveal)
+```
+
+```json
+// consult_handoff document
+{
+  "_id": "handoff:consult_8821",
+  "consult_id": "consult_8821",
+  "state": "continue_requested_by_A | both_confirmed | declined",
+  "requested_by": "npi:...",
+  "confirmed_by_a": true,
+  "confirmed_by_b": false,
+  "disclosure_shown_at": "2026-09-26T...",
+  "contacts_revealed_at": null
+}
+```
+
+**Enforcement rule:** the API endpoint that returns contact info checks `confirmed_by_a AND confirmed_by_b` server-side before returning anything — never trust a client-side gate for this. The disclosure text (§7 below) must be shown and acknowledged before a doctor's `confirmed_by_*` flag can be set to true.
+
+---
+
+## 7. Disclosure Text (Exact Wording to Use)
+
+> *"Conversations outside Impiricus are not monitored, logged, or moderated by Impiricus. As licensed clinicians, your professional and regulatory obligations continue to apply to any discussion you have independently."*
+
+Shown once per handoff, must be explicitly acknowledged (a checkbox or button tap, logged with timestamp) before a `confirmed_by_*` flag is set — this timestamp is what gives Impiricus a real audit trail showing the warning was present at the moment of the conduct, not buried in onboarding.
+
+---
+
+## 8. The Reusable Knowledge Base (Byproduct, Cheap to Add)
+
+Every answered consult is indexed by its tag combination (`drug_class + question_type + age_bracket + comorbidity_tags`):
+
+```python
+def search_prior_answers(selections: ConsultSelections) -> list[PriorAnswer]:
+    return db.consults.find({
+        "drug_class": selections.drug_class,
+        "question_type": selections.question_type,
+        "age_bracket": selections.age_bracket,
+        "comorbidity_tags": {"$in": selections.comorbidity_tags},
+        "status": "answered"
+    }).limit(5)
+```
+
+Surface this **before** creating a new match request ("3 similar questions already answered — see them, or request a new match"). This is safe to do only *because* the underlying data is categorical, not narrative — this is the concrete payoff of the categorical design choice, worth stating explicitly since it's a capability free-text chat structurally couldn't offer safely.
+
+---
+
+## 9. API Shape
+
+```
+POST /api/doctor-connect/consults           → create consult from ConsultSelections
+GET  /api/doctor-connect/consults/:id/prior-answers   → search before matching
+POST /api/doctor-connect/consults/:id/match            → run find_matches
+POST /api/doctor-connect/consults/:id/respond           → submit RESPONSE_PATTERN + optional free text
+POST /api/doctor-connect/consults/:id/continue          → request handoff
+POST /api/doctor-connect/consults/:id/confirm-handoff   → confirm; only reveals contacts once both true
+```
+
+---
+
+## 10. Edge Cases
+
+| Case | Handling |
+|---|---|
+| No opted-in peer clears `EXPERIENCE_FLOOR` for this drug class | Return "no strong match yet" rather than a weak forced match — a bad match is worse than no match for trust |
+| Doctor spams consult requests | Per-doctor rate limit at the API layer (state explicitly as a known v2 hardening item, not solved tonight) |
+| Free-text field blocked repeatedly by the same doctor | Log for the audit trail (§delta-overall-design.md §6.2); repeated blocks should surface to Impiricus's own review process, same escalation principle as discussed for compliance overall |
+| Doctor tries to game categorical fields to smuggle detail (e.g., picking "none_or_other" comorbidity but the free-text field trying to describe a specific case) | Tier 2 Gemini check (§5) is exactly the backstop for this — it isn't just for the honest-mistake case, it's the adversarial case too |
+
+---
+
+## 11. Build Checklist (Hackathon Order)
+
+1. Hardcode the taxonomy lists (§2) and question/response templates (§3, §5)
+2. Build `assemble_question` and the review/approve UI step — get this exactly right before anything else, it's the core safety mechanism
+3. Implement `find_matches` calling into `delta_engine.similarity` with the opt-in + experience-floor filter
+4. Implement the double opt-in state machine (§6) — write the server-side confirm-both check as a unit test before wiring the UI
+5. Implement Tier 1 regex + Tier 2 Gemini validation on the one free-text field (§5)
+6. Add prior-answer search (§8) — cheap, high demo value
+7. Rehearse the specific demo beats: (a) assembling the GLP-1/renal-impairment question end to end, (b) a free-text entry getting blocked live with a clear reason, (c) the double opt-in handoff with the disclosure shown
+MDEOF

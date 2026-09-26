@@ -1,0 +1,287 @@
+mkdir -p /home/claude/design && cat > /home/claude/design/delta-overall-design.md << 'MDEOF'
+# Delta — Overall System Design
+
+*HackGT 13 — Impiricus Challenge. This document is the system-level design: shared data model, shared engine, cross-cutting concerns, tech stack, and build sequencing. Component-level design lives in the three companion documents: `practice-mirror-design.md`, `doctor-connect-design.md`, `ledger-design.md`.*
+
+---
+
+## 1. System Goals, Restated as Engineering Constraints
+
+| Product goal | Engineering constraint it implies |
+|---|---|
+| No patient data, ever | No free-form patient-linked field exists anywhere in the schema. Enforced at the schema level, not by convention. |
+| Respect the doctor's anonymization opt-out | Every read of `interaction_data` must pass through a single access function that checks `consent_state` first. No component queries the raw collection directly. |
+| State rules vary and may change | Rules live in a config collection, not in code. A rule change requires a data update, not a redeploy. |
+| One engine, three products | A single library (`delta_engine/`) implements diff/similarity/explain/flag. All three products import it; none reimplement it. |
+| Everything explainable | Every flag, match, or divergence carries a citation string generated at computation time — never assembled after the fact from a template with blanks. |
+
+---
+
+## 2. High-Level Architecture
+
+```
+                        ┌─────────────────────────────┐
+                        │   Shared Data Layer (Mongo)  │
+                        │  DoctorProfile (canonical)   │
+                        │  StateRuleset (config)       │
+                        │  PharmaDataSchema (versions)  │
+                        └──────────────┬───────────────┘
+                                       │
+                        ┌──────────────▼───────────────┐
+                        │      delta_engine/ (shared)   │
+                        │  similarity.py  diff.py        │
+                        │  explain.py (Gemini)  flag.py  │
+                        └───┬───────────┬───────────┬────┘
+                            │           │           │
+                  ┌─────────▼──┐ ┌──────▼─────┐ ┌───▼──────┐
+                  │  Practice   │ │  Doctor    │ │  Ledger   │
+                  │  Mirror     │ │  Connect   │ │           │
+                  │  (Face 1)   │ │  (Face 2)  │ │  (Face 3) │
+                  └─────────────┘ └────────────┘ └───────────┘
+```
+
+**Why this shape, not three independent apps:** the whole pitch rests on "one engine, three products" being literally true in the codebase, not just true in the slide. If `delta_engine/` is a real importable module and all three products call the same three functions (`compute_similarity`, `compute_diff`, `generate_explanation`), a technical judge can open the repo and verify the claim in under a minute. That's a stronger proof than any amount of narration.
+
+---
+
+## 3. The Shared Data Model
+
+### 3.1 `DoctorProfile` (the canonical object every product reads)
+
+```json
+{
+  "_id": "npi:1234567890",
+  "npi_public_data": {
+    "specialty": "Endocrinology",
+    "sub_specialty": "Diabetes & Metabolism",
+    "region": "GA-Atlanta-Metro",
+    "practice_size_bracket": "solo|small_group|large_group|hospital_affiliated"
+  },
+  "interaction_data": {
+    "consent_state": "attributable | anonymized",
+    "drug_class_volume": {
+      "GLP-1_receptor_agonists": 0.62,
+      "SGLT2_inhibitors": 0.31,
+      "biologics_TNF": 0.02
+    },
+    "engagement_history_opt_in": true,
+    "content_engagement_tags": ["label_updates", "shortage_alerts"]
+  },
+  "state_ruleset_ref": "state:GA",
+  "profile_vector": [0.62, 0.31, 0.02, "... normalized embedding, computed field"],
+  "last_updated": "2026-09-01T00:00:00Z"
+}
+```
+
+**Design decisions worth stating explicitly in a demo or a judge Q&A:**
+- `npi_public_data` has no consent gate anywhere in the code — it's a public registry, and treating it as gated would be dishonest about what it actually is.
+- `interaction_data.consent_state` is the single flag every downstream consumer checks. If it's `"anonymized"`, any accessor function strips `_id`'s NPI-linkage before returning the record — it returns the drug-class volumes and specialty bucket, but not a queryable path back to that specific doctor.
+- `profile_vector` is a **derived, cached field** — computed once when the profile updates, not recomputed per-request. This matters for demo performance: similarity scoring against a numeric vector is instant; recomputing embeddings live is not.
+- `drug_class_volume` values are **already aggregated ratios**, not raw prescription counts — this is what respects Medicare's own small-cell suppression convention (counts under 11 are never exposed as raw numbers; only derived ratios/buckets are stored).
+
+### 3.2 The Consent Access Function (the one chokepoint)
+
+```python
+def get_interaction_data(doctor_id: str, requesting_product: str) -> dict:
+    """
+    Every product-level query for a doctor's interaction data MUST go through
+    this function. There is no other sanctioned read path in the codebase.
+    """
+    profile = db.doctor_profiles.find_one({"_id": doctor_id})
+    data = profile["interaction_data"]
+    if data["consent_state"] == "anonymized":
+        return strip_doctor_linkage(data)   # returns aggregate-shape data,
+                                             # never resolvable back to doctor_id
+    return data
+```
+
+This single function is the thing to point at when Impiricus's compliance people ask "how do you enforce the opt-out in code, not just in policy." One function, one test suite, one place to audit — not a rule that has to be independently remembered in three different product codebases.
+
+### 3.3 `StateRuleset` (configurable, not hardcoded)
+
+```json
+{
+  "_id": "state:GA",
+  "restricts_prescriber_marketing_use": false,
+  "restricts_anonymized_data_pooling": false,
+  "notes": "No active prescriber-confidentiality statute as of 2026 (see Sorrell v. IMS Health, 2011, for legal history of this category of law).",
+  "last_reviewed": "2026-09-26"
+}
+```
+
+Loaded by `delta_engine/flag.py` at evaluation time, never inlined into logic. Adding or changing a state's rule is a document update, demoable live by literally editing a record and showing the flag behavior change — a much stronger "we built this to be configurable" proof than a slide claiming it.
+
+### 3.4 `PharmaDataSchema` versions (Ledger's core object — detailed in `ledger-design.md`)
+
+Referenced here only to show it shares the same engine:
+
+```json
+{
+  "_id": "schema:pharma_acme:v3",
+  "pharma_client": "Acme Pharma",
+  "version": 3,
+  "parent_version": 2,
+  "fields_included": ["npi_public_data.specialty", "interaction_data.drug_class_volume"],
+  "proposed_by": "internal_ops_user_42",
+  "status": "proposed | flagged | approved | rejected",
+  "created_at": "2026-09-20T00:00:00Z"
+}
+```
+
+---
+
+## 4. The Shared Engine (`delta_engine/`)
+
+### 4.1 Module layout
+
+```
+delta_engine/
+  similarity.py    # cosine similarity over profile_vector / tag_vector
+  diff.py          # structural diff over any two JSON-shaped documents
+  explain.py        # Gemini calls: plain-language explanation of a delta/match
+  flag.py           # threshold + rule evaluation, returns cited flags
+  consent.py        # the access-function chokepoint from §3.2
+```
+
+### 4.2 Core interfaces (this is the actual "one engine" contract)
+
+```python
+# similarity.py
+def compute_similarity(vector_a: list[float], vector_b: list[float],
+                        dims: list[str]) -> SimilarityResult:
+    """Cosine similarity restricted to shared, named dimensions (dims).
+       Used by: Practice Mirror (doctor vs. peer benchmark),
+                Doctor Connect (doctor vs. candidate peer)."""
+
+# diff.py
+def compute_diff(snapshot_a: dict, snapshot_b: dict) -> DiffResult:
+    """Field-level structural diff: added / removed / modified, with paths.
+       Used by: Ledger (schema v_n vs v_n+1)."""
+
+# explain.py
+def generate_explanation(delta_or_match: DiffResult | SimilarityResult,
+                          context: dict) -> str:
+    """One Gemini call, one shared prompt scaffold (see §4.3), specialized
+       per product only by the `context` dict passed in — the scaffold
+       itself never forks per product."""
+
+# flag.py
+def evaluate_flags(item: DiffResult | SimilarityResult,
+                    rulesets: list[StateRuleset]) -> list[Flag]:
+    """Returns flags with a `citation` field naming exactly which
+       rule/threshold fired. Never returns an unexplained flag."""
+```
+
+### 4.3 The shared Gemini prompt scaffold
+
+All three products call `generate_explanation` with the same underlying scaffold, differing only in the `context` block — this is the detail worth having memorized if a judge asks "wait, is this really the same code path":
+
+```
+SYSTEM: You explain a computed delta or similarity match to a healthcare
+professional audience. Be concrete, cite the specific fields that drove
+the result, and never speculate about anything not present in the input
+data. Output 1-2 sentences, plain language, no jargon inflation.
+
+INPUT:
+  computation_type: {{ "delta" | "similarity" }}
+  fields_involved: {{ list of field paths }}
+  values: {{ the actual before/after or the actual two compared values }}
+  context: {{ product-specific — e.g. "peer benchmark for specialty X"
+              or "proposed pharma schema change" }}
+
+OUTPUT: one explanation string + a citation of which field(s) drove it
+```
+
+### 4.4 Flag thresholds, per product (config, not code branches)
+
+```json
+{
+  "practice_mirror": {"relevance_floor": 0.15, "severity_multiplier": 1.0},
+  "doctor_connect":   {"relevance_floor": 0.55, "severity_multiplier": 1.0},
+  "ledger":           {"relevance_floor": 0.0,  "severity_multiplier": "rule_based"}
+}
+```
+Practice Mirror and Doctor Connect use the *same* threshold mechanism at different floors (a benchmark divergence needs a lower bar to surface than a peer match, which needs real confidence). Ledger's flags aren't threshold-based at all — they're rule-triggered (§ledger-design.md) — which is why its multiplier is `"rule_based"` rather than a number. This is intentionally visible in one config file so the "same engine, different tuning" story is provable, not asserted.
+
+---
+
+## 5. Tech Stack & Repo Structure
+
+```
+/delta
+  /delta_engine/          # shared library, §4
+  /practice_mirror/       # Face 1 — see practice-mirror-design.md
+  /doctor_connect/        # Face 2 — see doctor-connect-design.md
+  /ledger/                # Face 3 — see ledger-design.md
+  /shared_ui/             # consent-boundary badge component, used by 1 & 2
+  /scripts/
+    seed_demo_data.py     # loads synthetic DoctorProfiles + schema versions
+    scheduled_recheck.py  # Vultr cron target — re-evaluates Ledger flags
+  /tests/
+    test_consent.py       # proves the access-function chokepoint holds
+```
+
+- **MongoDB Atlas** — single cluster, collections per §3. Chosen because the shared-schema, flexible-field design (public vs. interaction data, versioned schema docs) maps naturally onto documents rather than relational tables, and because it's a named MLH prize track.
+- **Gemini** — the only model call in the system; every product's "explain" step routes through `delta_engine/explain.py`.
+- **Vultr** — hosts `scheduled_recheck.py` as a cron job (Ledger's re-validation, see `ledger-design.md` §5).
+- **Frontend** — a single lightweight web app (React or plain HTML/JS, team's choice) with three routed views, sharing the consent-boundary badge component so it looks and behaves identically across products.
+
+---
+
+## 6. Cross-Cutting Concerns
+
+### 6.1 Consent enforcement
+Covered in §3.2. The one thing to test explicitly and be ready to show: querying an anonymized doctor's `interaction_data` from any product route returns aggregate-shape data with no `_id` linkage. Write this as an actual unit test (`test_consent.py`) — "we have a test that proves this" is a stronger claim than "we designed it this way."
+
+### 6.2 Audit logging
+A single `audit_log` collection, appended to (never mutated) by:
+- Practice Mirror: when a doctor views their comparison (who viewed what, when — not what was shown)
+- Doctor Connect: match creation, double-opt-in state transitions (see `doctor-connect-design.md` §5)
+- Ledger: every schema version proposal, flag, and approval/rejection
+
+One collection, one schema, one place to point to for "can you show me the audit trail" — same "one engine" discipline applied to logging.
+
+### 6.3 Rate limiting / abuse prevention
+Doctor Connect is the only face with a live create-action a bad actor could spam (repeated consult requests). A simple per-doctor rate limit (N requests / hour) at the API layer is sufficient for a demo — call this out as a known v2 hardening item rather than building real abuse-detection tooling tonight.
+
+---
+
+## 7. Build Sequencing (Team of ~4, One Overnight Hackathon Window)
+
+| Phase | Time | What gets built | Who |
+|---|---|---|---|
+| **0. Foundation** | Hour 0–2 | `delta_engine/` skeleton (interfaces stubbed), Mongo schemas, seed script with synthetic data | 1 person, whole team reviews interfaces before splitting |
+| **1. Parallel build** | Hour 2–7 | Practice Mirror UI + logic; Doctor Connect categorical UI + matching; Ledger diff view + flag rules | 3 people, one per face, all importing the same `delta_engine/` |
+| **2. Integration** | Hour 7–8 | Consent-boundary badge shared component wired into both Practice Mirror and Doctor Connect; confirm all three faces genuinely call the same engine functions | Whole team |
+| **3. Demo data + rehearsal** | Hour 8–9 | Seed the specific demo scenarios (the GLP-1 example, the flagged schema diff, the peer-benchmark divergence) — not generic random data | Whole team |
+| **4. Polish + QA** | Hour 9–10 | Visual pass on Practice Mirror only (it's the primary demo surface, per the build-priority calls in each component doc) | 1–2 people |
+
+**Explicit non-goals for tonight** (stated once here so it doesn't need repeating in each component doc): no real EHR/FHIR integration, no real Medicare Part D API pull (synthetic data shaped like it), no production-grade auth, no mobile responsiveness pass, no bilateral Ledger portal (internal-only, per the pitch decision).
+
+---
+
+## 8. Risk Register (Consolidated)
+
+| Risk | Mitigation | Where it's detailed |
+|---|---|---|
+| Small-cohort re-identification in Practice Mirror | Suppress any cohort under n=11, matching Medicare's own convention | `practice-mirror-design.md` §4 |
+| Categorical taxonomy too rigid for real questions | "Suggest a new category" governed path, not open text | `doctor-connect-design.md` §2 |
+| Off-platform handoff read as a loophole | Double opt-in + explicit disclosure text, logged not monitored | `doctor-connect-design.md` §5 |
+| Ledger flags feel arbitrary without citation | Every flag carries the specific rule/field that triggered it (§4.4 above) | `ledger-design.md` §3 |
+| "One engine" claim not actually verifiable | Shared `delta_engine/` module, same 4 functions imported by all three | This document, §4 |
+
+---
+
+## 9. How This Maps Back to the Pitch
+
+Everything in this document exists to make three specific pitch claims literally, checkably true:
+1. **"One engine, three products"** → `delta_engine/` is a real shared module (§4).
+2. **"No patient data, ever"** → the schema has no field for it, and the consent chokepoint is a tested function (§3.2, §6.1).
+3. **"Configurable, not hardcoded"** (state rules) → `StateRuleset` is a Mongo collection, editable live in the demo (§3.3).
+
+If a judge asks to see the code, this is the document that tells you exactly what to pull up.
+MDEOF
+echo "written: $(wc -l < /home/claude/design/delta-overall-design.md) lines"
+
+
+

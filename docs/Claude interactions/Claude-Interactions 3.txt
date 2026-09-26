@@ -1,0 +1,130 @@
+# Practice Mirror — Component Design
+
+*Face 1 of Delta. Full polish, primary demo surface — this is the only face judged directly on "impact on the HCP," so implementation quality here matters more than on the other two faces. See `delta-overall-design.md` for the shared engine and data model this depends on.*
+
+---
+
+## 1. What It Actually Does, Precisely
+
+A doctor opts in and sees, in one screen: **how their own aggregate prescribing pattern for a drug class compares to their specialty/region peer cohort**, with a plain-language flag on any divergence that's both statistically real and clinically meaningful (guideline-relevant), never framed at the branded-drug level.
+
+---
+
+## 2. Data Sources for the Demo
+
+Real APIs/datasets exist for all of this, but a hackathon build should use **synthetic data shaped identically to the real schema**, so the logic is real even if the specific numbers are seeded:
+
+| Field | Real source (for a v2 build) | Demo approach (tonight) |
+|---|---|---|
+| Specialty, region | NPPES (public, free, bulk-downloadable) | Seed ~30–50 synthetic doctor records with varied specialty/region |
+| Drug-class Rx volume | CMS Medicare Part D Prescriber Public Use File | Generate synthetic volume ratios per doctor, clustered so some doctors are deliberately below-peer on a class |
+| Guideline recommendation mapping | ADA/ACC/specialty-society published guidelines | A small, hand-curated lookup table: `drug_class → guideline-recommended population → citation text` for 3–4 drug classes |
+
+**Why synthetic-but-realistically-shaped matters:** the demo needs to show a real divergence with a real explanation, and hand-curating 3–4 guideline mappings well is more convincing than attempting a live pull from inconsistent public data sources under time pressure.
+
+---
+
+## 3. The Computation Pipeline
+
+### 3.1 Cohort definition
+A doctor's peer cohort = same `specialty` + same `region` bucket (region buckets should be coarse — state or metro-area level, never finer, both for demo-data-availability reasons and because finer-grained cohorts increase re-identification risk, see §4).
+
+### 3.2 Divergence score
+```python
+def compute_divergence(doctor_profile: DoctorProfile, drug_class: str,
+                        cohort: list[DoctorProfile]) -> DivergenceResult:
+    doctor_ratio = doctor_profile.interaction_data["drug_class_volume"][drug_class]
+    cohort_ratios = [d.interaction_data["drug_class_volume"][drug_class] for d in cohort]
+    cohort_mean = mean(cohort_ratios)
+    cohort_std  = stdev(cohort_ratios)
+    z_score = (doctor_ratio - cohort_mean) / cohort_std if cohort_std > 0 else 0
+    return DivergenceResult(doctor_ratio, cohort_mean, z_score)
+```
+This *is* `delta_engine.similarity.compute_similarity`, specialized: rather than a generic cosine similarity across many dimensions, Practice Mirror calls it per-drug-class with `dims=[drug_class]`, and treats the resulting distance as a z-score against the cohort distribution. Documenting this mapping explicitly (same function, narrowed dimensionality) is what keeps the "one engine" claim honest rather than Practice Mirror secretly having its own separate stats code.
+
+### 3.3 Guideline relevance gate
+A raw statistical divergence isn't inherently meaningful — only route it to the flag/explain stage if the drug class in question has a guideline-recommended population **that the doctor's own specialty treats**. This is the check that keeps the tool from flagging harmless, expected specialty-driven variation as if it were a gap.
+
+```python
+GUIDELINE_TABLE = {
+  "GLP-1_receptor_agonists": {
+      "recommended_for": ["Type 2 Diabetes", "guideline-indicated CVD risk reduction"],
+      "citation": "ADA Standards of Care, current edition"
+  },
+  # ... 3-4 entries total for the demo
+}
+```
+
+### 3.4 Explanation generation
+Calls `delta_engine.explain.generate_explanation` with `context={"product": "practice_mirror", "framing_level": "drug_class"}` — the `framing_level` flag is read by the prompt scaffold to enforce the non-negotiable guideline-level framing rule (§5 below) at the generation layer, not just as a UI display choice, so a raw API response can't accidentally leak branded-drug phrasing either.
+
+---
+
+## 4. Small-Cohort Suppression (Critical Safeguard)
+
+**Rule:** if a cohort has fewer than 11 doctors, do not compute or display a divergence at all — show "not enough peer data in your region/specialty yet" instead of a number.
+
+This mirrors CMS's own convention for exactly this reason (a divergence stat computed against a tiny cohort risks effectively re-identifying which specific peer doctors are "average"). Implement this as a hard gate before `compute_divergence` runs, not as a display-layer filter after the fact — the number should never be computed in the first place, not just hidden.
+
+```python
+def get_comparison(doctor_id, drug_class):
+    cohort = get_cohort(doctor_id)
+    if len(cohort) < 11:
+        return InsufficientCohortResult()
+    return compute_divergence(...)
+```
+
+---
+
+## 5. Framing Discipline (Non-Negotiable, Enforced in Code)
+
+Every screen must show drug-class level comparisons, never a branded drug name. Enforce this as a **data-layer constraint**, not a UI style guide: the `drug_class_volume` field never stores branded-drug-level data at all — it's aggregated to class during ingestion. This means there's no branded-drug field for a future engineer (or a rushed 3am demo edit) to accidentally surface.
+
+---
+
+## 6. API Shape
+
+```
+GET  /api/practice-mirror/:doctor_id/comparisons
+     → list of {drug_class, doctor_ratio, cohort_mean, z_score, flagged, explanation, citation}
+     → returns InsufficientCohortResult for any drug_class below the n=11 gate
+
+POST /api/practice-mirror/:doctor_id/opt-in
+     → toggles whether this doctor's aggregate data is visible in Practice Mirror at all
+     → separate from the interaction_data.consent_state anonymization flag —
+       a doctor can be anonymized AND opted into seeing their own mirror;
+       these are two different consent dimensions, don't conflate them
+```
+
+---
+
+## 7. UI Flow (3 screens)
+
+1. **Opt-in screen** — plain-language explanation of what's being compared and how (drug-class level, peer cohort, no patient data), with the consent-boundary badge visible before the doctor sees any data.
+2. **Dashboard** — one row per drug class the doctor prescribes, each showing their ratio vs. cohort mean as a simple bar comparison, flagged rows visually distinct (not alarming — a neutral highlight, not red/warning styling, since this is educational, not a failure state).
+3. **Divergence detail** — tap a flagged row → the generated explanation + guideline citation + the consent-boundary badge again, reinforcing what data this used.
+
+---
+
+## 8. Edge Cases to Handle
+
+| Case | Handling |
+|---|---|
+| Doctor prescribes a drug class with no guideline table entry | Show the raw comparison without a flag — informational only, no "gap" framing without a guideline to ground it |
+| Doctor's cohort is below n=11 | `InsufficientCohortResult`, never a computed number (§4) |
+| Doctor has multiple listed specialties (NPPES allows this) | Use primary specialty only for cohort definition; note this simplification openly if asked |
+| Doctor opted into anonymization | Their own view of their own data is unaffected (anonymization gates *other people's* access, not self-access) — but they cannot be included as an identifiable peer in someone *else's* cohort comparison |
+
+---
+
+## 9. Build Checklist (Hackathon Order)
+
+1. Seed 30–50 synthetic `DoctorProfile` records with varied specialty/region/drug-class ratios, including at least one deliberately-small cohort and one deliberately-flagged doctor for the demo
+2. Hand-curate the `GUIDELINE_TABLE` for 3–4 drug classes (this is higher-leverage time spent than trying to automate guideline ingestion tonight)
+3. Implement `compute_divergence` calling into `delta_engine.similarity`
+4. Implement the n=11 suppression gate — write a quick test proving it blocks before building the UI on top of it
+5. Wire `generate_explanation` with the `framing_level` context flag
+6. Build the 3-screen UI, using the shared consent-boundary badge component from `/shared_ui/`
+7. Rehearse the specific demo path: one flagged divergence with a clean, citation-grounded explanation on screen
+MDEOF
+echo "written: $(wc -l < /home/claude/design/practice-mirror-design.md) lines"
