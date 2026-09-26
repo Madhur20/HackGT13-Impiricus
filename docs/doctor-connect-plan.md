@@ -109,11 +109,11 @@ Every transition writes an audit event. Contact information is returned only fro
 
 ### Step-by-step experience
 
-1. The requester chooses governed categories.
+1. The requester chooses the medication area and question topic. Coarse population and condition context stays optional and collapsed until requested.
 2. The system assembles a general question from a reviewed template.
-3. The requester confirms: “This question does not describe a specific patient.”
-4. Relay searches existing structured answers with the same taxonomy signature.
-5. If the requester still wants a peer, Relay filters and ranks candidates.
+3. The requester must confirm: “This question does not describe a specific patient.” Peer matching remains disabled until this required confirmation is checked.
+4. Relay filters and ranks candidates for the primary hackathon path.
+5. A later iteration may offer reviewed reusable answers without interrupting the main peer-request flow.
 6. The requester sees up to three matches but only limited professional details.
 7. The requester selects one peer and sends a request.
 8. The peer accepts, declines, or lets the request expire.
@@ -124,7 +124,7 @@ For the hackathon, step 9 uses structured fields only. Keep the optional note as
 
 ## 7. Reusable answer library
 
-Search prior answers before creating new work. Store only answers whose author explicitly permits reuse.
+Reusable answers are a secondary extension rather than a required step in the physician's primary hackathon flow. When implemented, search prior answers before creating new work and store only answers whose author explicitly permits reuse.
 
 ```ts
 type StructuredAnswer = {

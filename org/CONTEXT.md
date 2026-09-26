@@ -8,7 +8,7 @@ Relay is a consent-aware decision layer for Impiricus. It supports three experie
 
 - **Practice Mirror** gives a physician a private, descriptive comparison of their public Medicare Part D prescribing mix with a clearly defined peer cohort.
 - **Doctor Connect** lets a physician assemble a general clinical-practice question from governed categories and route it to an eligible, opted-in peer.
-- **Ledger** lets authorized Impiricus staff propose, review, approve, activate, and audit changes to the data fields a pharma client may receive.
+- **Ledger** provides two role-specific views over versioned, explainable change records: physicians see reviewed updates relevant to their specialty or explicitly explored topics, while authorized Impiricus staff review and audit changes to the data fields a pharma client may receive.
 
 The products share a policy pipeline, not one mathematical algorithm:
 
@@ -30,7 +30,7 @@ The hackathon prototype must prove direct HCP value, visible consent effects, ev
 | P0 | Shared foundation | Persona/role switching, purpose and consent evaluation, provenance labels, data broker, and audit events |
 | P0 | Doctor Connect | Structured question, hard eligibility filters, transparent ranking, request/response flow, and mutual contact consent |
 | P1 | Practice Mirror | One defensible cohort comparison with visible limits and no quality claim |
-| P1 | Ledger | One proposed field addition, semantic diff, deterministic rules, reviewer action, and version record |
+| P1 | Ledger | HCP: one reviewed before/after update with relevance reasons and a Connect handoff. Compliance: one proposed field addition, semantic diff, deterministic rules, reviewer action, and version record |
 | P2 | Extensions | Reusable answers, DocUpdate targeting, and scheduled policy re-evaluation |
 
 If time collapses, preserve one polished Doctor Connect path plus one compact, working path for Mirror and Ledger. The demo uses prepared synthetic data and must work without a network connection.
@@ -73,7 +73,7 @@ Ledger stores immutable versions with allowed fields, state, effective time, cre
 
 ## Shared system design
 
-Use one responsive web application with HCP navigation for Mirror and Connect, compliance navigation for Ledger, and a seeded persona switcher instead of production authentication.
+Use one responsive web application with HCP navigation for Mirror, Connect, and a physician-safe Updates view; compliance navigation exposes the internal Ledger and Audit views. Use a seeded persona switcher instead of production authentication.
 
 The hackathon should be a modular monolith with conceptual modules for profiles, policy, Mirror, Connect, Ledger, explanations, and audit. The shared, importable core exposes behavior equivalent to:
 
@@ -157,7 +157,11 @@ Core endpoints include taxonomy, preview, answer search, request creation, match
 
 ## Ledger
 
-Ledger manages the operative structured data scope for a pharma client. It does not ingest or interpret legal text in the prototype.
+Ledger has two strictly separated role-specific lenses over versioned changes.
+
+For an HCP, the navigation label is **Updates**. It shows reviewed synthetic practice, resource, or industry changes with a before/after version, provenance, and explicit relevance reasons. A Spark-style notification may deep-link here. Relevance may use specialty, explicit follows, or a topic the physician explored in Mirror or Connect; it must not infer patient treatment, expose client data, or claim the physician needs clinical improvement. An update may prefill a governed Doctor Connect question.
+
+For compliance, Ledger manages the operative structured data scope for a pharma client. It does not ingest or interpret legal text in the prototype.
 
 A proposal selects a governed catalog field and configures granularity, purpose, retention, filters, and aggregation threshold. The diff compares canonical objects, not lines, and emits additions, removals, and property changes. Rules run against the complete proposed version so interactions with existing fields are not missed.
 

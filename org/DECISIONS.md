@@ -4,6 +4,34 @@ This file records durable decisions. New entries should include a date, status, 
 
 ## Accepted baseline decisions
 
+### 2026-09-26 — Browser-first TypeScript prototype stack
+
+- **Status:** Accepted
+- **Decision:** Use an npm workspace with React 19, TypeScript, Vite, React Router, Vitest, and repository-owned CSS for the hackathon prototype. Keep the current demo local and synthetic until the team explicitly chooses a backend or hosted deployment.
+- **Reason:** This provides the fastest reliable path to a polished, interactive concept while preserving package boundaries and deterministic offline behavior.
+- **Affected:** Root tooling, `apps/web`, local setup, testing, and near-term demo work.
+
+### 2026-09-26 — Impiricus-adjacent visual direction without copied brand claims
+
+- **Status:** Superseded by the physician-first Impiricus palette decision below
+- **Decision:** Use a navy, lime, teal, card-based visual system inspired by the tone of Impiricus's public product experience, while keeping Relay's UI and design tokens repository-owned and avoiding claims that they are official brand assets.
+- **Reason:** The demo should feel credible in the Impiricus context without misrepresenting an official design system or depending on externally hosted assets.
+- **Affected:** Web shell, component styling, demo presentation, and future design QA.
+
+### 2026-09-26 — Physician-first interface with the supplied Impiricus palette
+
+- **Status:** Superseded in navigation scope by the role-specific Ledger views decision below; palette and progressive disclosure remain accepted
+- **Decision:** Use charcoal, cyan, magenta, and white as the Relay interface palette, based on the Impiricus reference supplied by the user. Show physicians only Overview, Practice Mirror, and Doctor Connect; reserve Ledger and Audit navigation for the compliance persona. Keep secondary clinical context and evidence details progressively disclosed.
+- **Reason:** A physician should be able to choose a task immediately without first interpreting the internal governance architecture. The revised palette also places Relay more naturally beside Impiricus's existing public product presentation.
+- **Affected:** Navigation, Home, Practice Mirror, Doctor Connect, responsive styling, and demo presentation.
+
+### 2026-09-26 — Ledger has separate HCP and compliance views
+
+- **Status:** Accepted
+- **Decision:** Use the `/ledger` route as a shared versioned-change surface with role-specific data and controls. HCPs see reviewed practice and industry updates under the navigation label “Updates”; compliance users retain the client data-scope Ledger. HCP relevance may use specialty, explicit follows, and topics explored in Relay, but must expose why an update was shown and must not infer patient treatment or recommend clinical improvement.
+- **Reason:** The same provenance, before/after, version-history, and audit foundation can make Spark-style notifications more transparent to physicians without exposing contract-governance workflows or conflating educational updates with legal/data-scope review.
+- **Affected:** HCP navigation, Ledger routing, data broker, synthetic fixtures, Spark handoff concept, Doctor Connect handoff, audit, and product documentation.
+
 ### 2026-09-26 — Relay is the product name
 
 - **Status:** Accepted

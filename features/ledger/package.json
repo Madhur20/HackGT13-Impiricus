@@ -1,0 +1,7 @@
+{
+  "name": "@relay/ledger",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": "./src/index.ts",
+  "dependencies": { "@relay/domain": "0.1.0", "@relay/relay-core": "0.1.0" }
+}
