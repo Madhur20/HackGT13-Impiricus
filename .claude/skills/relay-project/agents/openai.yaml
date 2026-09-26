@@ -1,0 +1,3 @@
+interface:
+  display_name: "Relay Project"
+  short_description: "Build Relay with its product and safety context"

@@ -112,8 +112,8 @@ Every transition writes an audit event. Contact information is returned only fro
 1. The requester chooses governed categories.
 2. The system assembles a general question from a reviewed template.
 3. The requester confirms: “This question does not describe a specific patient.”
-4. Delta searches existing structured answers with the same taxonomy signature.
-5. If the requester still wants a peer, Delta filters and ranks candidates.
+4. Relay searches existing structured answers with the same taxonomy signature.
+5. If the requester still wants a peer, Relay filters and ranks candidates.
 6. The requester sees up to three matches but only limited professional details.
 7. The requester selects one peer and sends a request.
 8. The peer accepts, declines, or lets the request expire.
@@ -227,7 +227,7 @@ Even structured answers can mention side effects, product problems, lack of effe
 
 For the hackathon, demonstrate one safe stop:
 
-> “This selection may describe a safety event. Delta cannot continue this peer workflow. Use the designated safety reporting route.”
+> “This selection may describe a safety event. Relay cannot continue this peer workflow. Use the designated safety reporting route.”
 
 Use a fictional destination. Do not claim the prototype fulfills FDA reporting requirements.
 
@@ -365,7 +365,7 @@ Demo sequence:
 
 Recommended disclosure for the prototype:
 
-> “If both physicians agree, Delta can share the contact details each selected. Communication then occurs outside Impiricus and is not monitored here. Continue to follow applicable privacy, professional, and organizational requirements, and do not share patient information unless permitted through an appropriate channel.”
+> “If both physicians agree, Relay can share the contact details each selected. Communication then occurs outside Impiricus and is not monitored here. Continue to follow applicable privacy, professional, and organizational requirements, and do not share patient information unless permitted through an appropriate channel.”
 
 This describes the product boundary without making a legal conclusion.
 

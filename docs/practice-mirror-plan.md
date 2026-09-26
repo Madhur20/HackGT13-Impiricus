@@ -154,7 +154,7 @@ For the prototype:
 6. Require a minimum total class-eligible claim count.
 7. Compute the median and quartiles. Avoid a simple mean because outliers can dominate claims data.
 
-Use 11 HCPs as the minimum demo cohort unless Impiricus chooses a more conservative threshold. This is a Delta product rule, not “the CMS rule.” CMS suppresses low claim counts; that does not automatically establish that 11 physicians is a sufficient privacy or statistical threshold for every cohort product. In production, select the threshold through privacy and statistical review.
+Use 11 HCPs as the minimum demo cohort unless Impiricus chooses a more conservative threshold. This is a Relay product rule, not “the CMS rule.” CMS suppresses low claim counts; that does not automatically establish that 11 physicians is a sufficient privacy or statistical threshold for every cohort product. In production, select the threshold through privacy and statistical review.
 
 Do not use cosine similarity for this screen. A transparent cohort definition is easier to explain and defend.
 
@@ -194,7 +194,7 @@ Gemini may rewrite this payload into concise prose. The UI should retain a deter
 
 A small human-reviewed lookup may link the drug class to an authoritative guideline relevant to the HCP’s specialty. Keep it visually separate from the peer comparison:
 
-> “Educational context: this class appears in the cited guideline. Delta has not determined whether the recommendation applies to your patients.”
+> “Educational context: this class appears in the cited guideline. Relay has not determined whether the recommendation applies to your patients.”
 
 The guideline lookup must never convert the claims comparison into an adherence flag. Cite an exact edition and review date rather than “current guideline.”
 
