@@ -1,8 +1,8 @@
-# Delta: System and Hackathon Build Plan
+# Relay: System and Hackathon Build Plan
 
 ## 1. Product thesis
 
-Delta is a consent-aware decision layer for Impiricus. It supports three experiences:
+Relay is a consent-aware decision layer for Impiricus. It supports three experiences:
 
 1. **Practice Mirror** gives an HCP a descriptive view of their public prescribing pattern compared with a carefully defined peer cohort.
 2. **Doctor Connect** assembles a structured clinical-practice question and routes it to an eligible, opted-in peer.
@@ -35,7 +35,7 @@ This framing preserves the original “one engine, three products” story witho
 
 The hackathon build should prove four things:
 
-- Delta produces direct value for an HCP.
+- Relay produces direct value for an HCP.
 - Consent changes what the system can compute and display.
 - Explanations come from structured evidence rather than model invention.
 - The same policy and provenance infrastructure supports an internal commercial workflow.
@@ -56,7 +56,7 @@ If time collapses, keep one polished Doctor Connect path and one compact screen 
 
 ## 4. Product boundaries
 
-### Delta may do
+### Relay may do
 
 - Describe public prescribing data and peer-cohort differences.
 - Match an opted-in HCP to another opted-in HCP using permitted profile attributes.
@@ -65,7 +65,7 @@ If time collapses, keep one polished Doctor Connect path and one compact screen 
 - Compare versions of a data-sharing schema.
 - Explain which structured facts and rules produced a result.
 
-### Delta must not claim to do
+### Relay must not claim to do
 
 - Determine guideline adherence from Part D prescribing counts alone.
 - Infer patient diagnoses, outcomes, eligibility, or treatment appropriateness.
@@ -208,7 +208,7 @@ These may live in one hackathon server with separate modules. The service bounda
 
 ### Verifiable shared code contract
 
-The transcripts correctly emphasize that judges should be able to verify the shared foundation in the repository. Implement an importable `delta-core` package with these interfaces:
+The transcripts correctly emphasize that judges should be able to verify the shared foundation in the repository. Implement an importable `relay-core` package with these interfaces:
 
 ```ts
 authorizeUse(input: AccessRequest): AccessDecision
@@ -399,7 +399,7 @@ If the available time is shorter, finish Connect first, then one complete Mirror
 
 The deck currently allocates 90 seconds. Use prepared data and no typing except the categorical selections.
 
-1. **0–10 seconds:** “Delta applies one consent and provenance layer to three confirmed Impiricus gaps.”
+1. **0–10 seconds:** “Relay applies one consent and provenance layer to three confirmed Impiricus gaps.”
 2. **10–30 seconds, Mirror:** show a descriptive class-level difference and open its cohort/coverage disclosure.
 3. **30–60 seconds, Connect:** assemble a question, show only eligible peers, and reveal the match explanation. Trigger the mutual-contact request.
 4. **60–78 seconds, Ledger:** add a proposed field, show its diff and the rule that sends it to review.
@@ -437,7 +437,7 @@ The audit timeline is the strongest proof that the products share infrastructure
 | One universal diff/similarity function | Reject | The products perform different computations; forcing one abstraction creates misleading code |
 | Direct reads of public fields and one accessor for restricted fields | Refine | All product reads should use a data broker so purpose and recipient checks apply consistently |
 | Cached profile vector | Adopt with limits | Useful for demo speed, but cache only permitted, named features and invalidate on consent changes |
-| “No patient data ever” | Replace | Use “Delta does not request or need patient-level data in the demo”; absolute guarantees are not supportable |
+| “No patient data ever” | Replace | Use “Relay does not request or need patient-level data in the demo”; absolute guarantees are not supportable |
 | Editable rules in Mongo | Adopt with controls | Rules should be versioned configuration, but edits require authorization and produce audit events |
 | Shared audit collection | Adopt | Provides the strongest visible evidence that all three products share governance infrastructure |
 | Synthetic data shaped like production schemas | Adopt | Delivers reliable demo behavior without implying production readiness or exposing real HCP data |

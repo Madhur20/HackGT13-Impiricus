@@ -1,4 +1,4 @@
-# Delta
+# Relay
 ### One consent-aware engine. Three products: a doctor's mirror, a peer network, and a compliance ledger.
 
 *HackGT 13 — Impiricus Challenge + Social Good Track*
