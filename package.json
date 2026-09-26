@@ -1,0 +1,26 @@
+{
+  "name": "relay",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "features/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @relay/web",
+    "build": "npm run build --workspace @relay/web",
+    "test": "vitest run",
+    "typecheck": "tsc -b",
+    "check": "npm run typecheck && npm run test && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

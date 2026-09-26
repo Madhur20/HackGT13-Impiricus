@@ -2,15 +2,25 @@
 
 ## 1. Product purpose
 
-Ledger gives Impiricus staff a controlled workflow for proposing, reviewing, approving, and auditing changes to the data a pharma client may receive. It replaces an informal comparison of emails, spreadsheets, and contract language with a structured record of the operative data scope.
+Ledger uses one versioned-change foundation for two distinct role-specific experiences. For Impiricus staff, it provides a controlled workflow for proposing, reviewing, approving, and auditing changes to the data a pharma client may receive. For HCPs, an **Updates** view makes reviewed Spark-style practice, resource, and industry notifications transparent through before/after versions, provenance, and relevance reasons.
 
-The product promise is:
+The compliance promise is:
 
 > “See exactly what changed, which internal policies apply, who approved it, and when the new scope became effective.”
 
+The HCP promise is:
+
+> “See what changed in reviewed information relevant to your professional interests, understand why it appeared, and ask an opted-in peer when you want practical context.”
+
 Ledger does not interpret contracts or issue legal approval. It organizes facts and routes decisions to authorized reviewers.
 
+The HCP view does not recommend treatment, score clinical quality, or infer patient-level drug use. It may match updates using specialty, explicit follows, and topics the physician chose to explore, and it must tell the physician why each update appeared.
+
 ## 2. User and job
+
+### HCP
+
+Job: “Show me what changed in reviewed information related to my specialty or topics I follow, explain why I am seeing it, and let me discuss it with an opted-in peer.”
 
 ### Requester
 
@@ -32,6 +42,9 @@ Job: “Reproduce what data scope applied on a given date and why it was approve
 
 ### Build
 
+- An HCP Updates view with three synthetic reviewed changes.
+- A Spark-style notification entry, before/after version, provenance, and explicit relevance reasons.
+- A governed handoff that prefills Doctor Connect with only the therapeutic area and approved discussion topic.
 - Two synthetic pharma clients.
 - One current approved schema per client.
 - A proposal form for adding one field.
@@ -42,6 +55,9 @@ Job: “Reproduce what data scope applied on a given date and why it was approve
 
 ### Exclude
 
+- Patient-level targeting or inference that a physician treated a particular patient with a drug.
+- Clinical “improvement” scores or treatment recommendations.
+- Pharma control over which individual physician receives a specific update by default.
 - Contract ingestion or legal-text extraction.
 - Electronic signatures.
 - A pharma-client portal.
@@ -239,6 +255,14 @@ The UI must show the rule hit next to the generated summary so the summary is ne
 
 ## 9. Interface plan
 
+### HCP updates
+
+- Recent reviewed updates relevant to the physician.
+- Transparent “why you are seeing this” reasons.
+- Before and current version labels.
+- Synthetic/reviewed source label and review date.
+- “Ask a peer about this” handoff using the governed Doctor Connect taxonomy.
+
 ### Client overview
 
 - Current effective version
@@ -275,6 +299,7 @@ The UI must show the rule hit next to the generated summary so the summary is ne
 
 ```text
 GET  /api/ledger/catalog
+GET  /api/updates?specialty=:specialty
 GET  /api/ledger/clients/:clientId/current
 GET  /api/ledger/clients/:clientId/versions
 POST /api/ledger/clients/:clientId/proposals

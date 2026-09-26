@@ -4,31 +4,30 @@ Last updated: 2026-09-26.
 
 ## Current state
 
-- **Stage:** Team-ready repository scaffolding and implementation planning.
-- **Repository contents:** Product/system plans, maintained context, contribution guidance, and module ownership scaffolding.
-- **Application code:** Not present.
-- **Tests:** Not present.
-- **Demo readiness:** Not started.
-- **Data:** No seed fixtures are present in the repository.
-- **Deployment:** No application or infrastructure configuration is present.
+- **Stage:** Functional browser-first hackathon prototype.
+- **Repository contents:** Product/system plans, maintained context, contribution guidance, module boundaries, and a TypeScript workspace.
+- **Application code:** React/Vite web shell with Home, Practice Mirror, Doctor Connect, role-specific HCP Updates and compliance Ledger views, and a shared Audit view.
+- **Tests:** Ten deterministic tests across cohort comparison, matching, policy, data-broker, update filtering, and semantic-diff behavior.
+- **Demo readiness:** Core click paths work from synthetic seed data and the production bundle builds. The simplified physician screens pass headless Chrome desktop review; hands-on mobile interaction QA remains open.
+- **Data:** Thirty-six synthetic HCP profiles, prescribing fixtures, three reviewed-update fixtures, client-scope fields, consent failure cases, and a fictional versioned policy.
+- **Deployment:** Local Vite build only; no hosted deployment or backend is configured.
 
-Do not infer implementation from the detailed plans. They describe intended behavior.
+Plans remain broader than the prototype. Do not infer production integrations, legal approval, real credentialing, or durable storage from the working UI.
 
 ## Active priority
 
-Start the vertical skeleton defined in `docs/relay-system-plan.md`:
+Harden the working prototype for the hackathon demo:
 
-1. Choose the web, server, workspace, test, and validation tooling, then initialize it inside the existing boundaries.
-2. Define the shared domain contracts and importable core interfaces.
-3. Seed synthetic HCPs, contracts, policy rules, consent cases, and failure states.
-4. Implement the purpose-aware data broker, deterministic policy service, provenance rendering, and audit writer.
-5. Add persona switching and a shared shell.
-6. Complete Doctor Connect end to end before expanding Mirror and Ledger.
+1. Perform hands-on responsive QA in Chrome and on a phone-sized device.
+2. Add browser-level tests for the Mirror → Connect handoff, consent revocation, double-consent contact reveal, and Ledger blocked-to-review path.
+3. Add a deterministic demo reset for page-local state, not only persona and audit state.
+4. Decide whether the hackathon needs a minimal API/persistence layer or should remain an intentionally local prototype.
+5. Prepare deployment and a concise scripted demo run.
 
 ## Required early fixtures
 
 - 30–50 synthetic HCP profiles.
-- Two synthetic client contracts.
+- A second synthetic client contract.
 - Versioned policy fixtures, including an undersized Mirror cohort, a revoked Connect candidate, an unverified candidate, and a blocked Ledger proposal.
 - Offline deterministic explanation templates.
 
@@ -38,16 +37,42 @@ No code-level blocker is recorded yet. Production behavior remains blocked on Im
 
 ## Definition of the next milestone
 
-The vertical skeleton is complete when:
+The next demo-hardening milestone is complete when:
 
-- a user can switch among seeded HCP and compliance personas;
-- all three feature modules call the same authorization/data-broker path;
-- at least one allow, deny, and review policy result is visible;
-- provenance badges render from field metadata;
-- each product can write an audit event using the same policy version;
-- the demo runs from a clean local seed without external model access.
+- Chrome desktop and mobile-width paths pass visual review;
+- the four critical browser paths have repeatable end-to-end coverage;
+- a clean-clone setup and demo script have been exercised;
+- the team has made and recorded the local-only versus hosted-demo decision.
 
 ## Iteration log
+
+### 2026-09-26 — HCP Ledger Updates view
+
+- **Changed:** Added a role-specific HCP Updates view on the Ledger route, exposed it in physician navigation, seeded three synthetic reviewed changes, added purpose-aware specialty filtering, displayed before/after versions and relevance reasons, and connected each update to a governed Doctor Connect topic. The compliance persona retains the existing client data-scope Ledger.
+- **Verified:** `npm run check` passes TypeScript validation, ten tests, and the production build. The HCP Updates screen was visually checked in headless Chrome at 1440 × 1000.
+- **Open:** Production Spark event ingestion, editorial review workflow, explicit topic-follow controls, and real notification delivery are not implemented.
+- **Next:** Add an end-to-end test for Spark notification → Updates → Doctor Connect and define the reviewed update publishing workflow.
+
+### 2026-09-26 — Required general-question confirmation
+
+- **Changed:** Doctor Connect now requires the physician to affirm that the question is general and does not describe a specific patient before peer matching can begin.
+- **Verified:** The confirmation is controlled, starts unchecked, and gates both the visible action and its event handler.
+- **Open:** Browser-level automation for this gate remains part of the planned end-to-end coverage.
+- **Next:** Add the confirmation gate to the Doctor Connect browser test when the end-to-end harness is introduced.
+
+### 2026-09-26 — Physician-first UI simplification
+
+- **Changed:** Replaced the prior navy/lime styling with the supplied Impiricus charcoal, cyan, magenta, and white direction. Reduced the physician home screen to two actions, limited physician navigation to three destinations, progressively disclosed optional Doctor Connect context, removed the reusable-answer detour from the main path, and simplified Mirror language and actions.
+- **Verified:** `npm run check` passes TypeScript validation, nine tests, and the production build. Headless Chrome desktop renders of Home, Mirror, and Connect were visually checked at 1440 × 1000; mobile overflow defenses and breakpoints were updated.
+- **Open:** Hands-on mobile interaction QA and end-to-end browser automation remain outstanding.
+- **Next:** Exercise the full flows on a phone-sized browser and add browser tests for the core demo paths.
+
+### 2026-09-26 — Functional browser prototype
+
+- **Changed:** Initialized the npm workspace and implemented an Impiricus-adjacent React/Vite interface for Practice Mirror, Doctor Connect, Ledger, and the shared audit timeline. Added shared domain, policy, broker, audit, seed, and feature-computation packages with synthetic data and deterministic failure paths.
+- **Verified:** `npm run check` passes TypeScript validation, nine tests across five suites, and the production build. The Vite server returns the application shell; headless Chrome renders of Home, Mirror, Connect, and the Ledger role gate were visually checked at 1440 × 1000.
+- **Open:** Mobile and hands-on interaction QA, browser-level interaction tests, deployment, backend persistence, and production integrations remain outstanding. `npm install` reports two moderate dependency advisories that should be reviewed before any production use.
+- **Next:** Run responsive Chrome QA and add end-to-end coverage for the four critical demo paths.
 
 ### 2026-09-26 — Relay-wide branding and synchronized agent skill
 

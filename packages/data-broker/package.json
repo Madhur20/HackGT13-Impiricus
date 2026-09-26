@@ -1,0 +1,11 @@
+{
+  "name": "@relay/data-broker",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "@relay/demo-seed": "0.1.0",
+    "@relay/domain": "0.1.0",
+    "@relay/policy-engine": "0.1.0"
+  }
+}

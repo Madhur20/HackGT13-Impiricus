@@ -1,0 +1,7 @@
+{
+  "name": "@relay/policy-engine",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": "./src/index.ts",
+  "dependencies": { "@relay/domain": "0.1.0" }
+}

@@ -6,7 +6,20 @@ Relay is a consent-aware decision layer for Impiricus. One governance foundation
 - **Doctor Connect:** governed practice questions routed to eligible, opted-in peers.
 - **Ledger:** controlled review and versioning of pharma client data scopes.
 
-The repository currently contains the product plans and a team-ready application structure. Runtime tooling has not been selected or initialized yet.
+The repository now includes a working browser-first hackathon prototype built with React, TypeScript, and Vite. It uses deterministic synthetic data and runs fully offline after dependencies are installed; no production integration or backend is implied.
+
+## Run the prototype
+
+Use Node 20 or newer:
+
+```bash
+npm install
+npm run dev
+```
+
+Open the local URL printed by Vite. Use `npm run check` to run TypeScript validation, product-logic tests, and the production build.
+
+The primary demo paths are `/mirror`, `/connect`, `/ledger`, and `/audit`. The persona switcher in the top bar exposes the HCP and compliance views.
 
 ## Start here
 
@@ -22,7 +35,7 @@ Claude reads `CLAUDE.md`, Gemini reads `GEMINI.md`, and Codex-compatible agents 
 ```text
 apps/
   web/                       browser application and feature UI
-  api/                       HTTP composition root and product endpoints
+  api/                       reserved for the future HTTP composition root
 features/
   practice-mirror/           cohort comparison computation and use cases
   doctor-connect/            taxonomy, eligibility, ranking, and request states
