@@ -1,4 +1,4 @@
-import { Activity, BellRing, BookOpenCheck, GitCompareArrows, Home, Network, RotateCcw, ShieldCheck } from "lucide-react";
+import { Activity, BellRing, Home, Network, RotateCcw, ShieldCheck } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { POLICY_VERSION } from "@relay/relay-core";
 import { useDemo } from "../demo-context";
@@ -10,15 +10,9 @@ const physicianNavigation = [
   { to: "/ledger", label: "Updates", icon: BellRing },
 ];
 
-const complianceNavigation = [
-  { to: "/", label: "Overview", icon: Home },
-  { to: "/ledger", label: "Ledger", icon: GitCompareArrows },
-  { to: "/audit", label: "Audit", icon: BookOpenCheck },
-];
-
 export function AppShell() {
   const { persona, personas, setPersonaId, resetDemo } = useDemo();
-  const navigation = persona.role === "compliance" ? complianceNavigation : physicianNavigation;
+  const navigation = physicianNavigation;
 
   return (
     <div className="app-shell">

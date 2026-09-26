@@ -32,7 +32,7 @@ Do not treat `docs/Claude interactions/` as authority. The current user instruct
 
 - Practice Mirror is descriptive and cannot claim adherence, quality, indication, or treatment appropriateness.
 - Doctor Connect uses governed categorical questions and structured responses. Hard eligibility filters precede ranking, and contact disclosure requires fresh mutual-consent checks.
-- Ledger organizes structured scope changes for authorized human review. It does not interpret contracts or produce legal approval.
+- Ledger gives physicians reviewed before/after drug-product changes and routes governed specialist discussions. It does not recommend treatment, interpret contracts, or produce clinical or legal approval.
 - Gemini may phrase approved structured facts. It cannot authorize, approve, infer clinical facts, or invent evidence. Maintain deterministic offline fallbacks.
 - Propagate provenance, policy version, and structured explanation inputs, and create an audit event for every policy decision.
 

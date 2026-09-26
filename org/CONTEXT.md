@@ -8,7 +8,7 @@ Relay is a consent-aware decision layer for Impiricus. It supports three experie
 
 - **Practice Mirror** gives a physician a private, descriptive comparison of their public Medicare Part D prescribing mix with a clearly defined peer cohort.
 - **Doctor Connect** lets a physician assemble a general clinical-practice question from governed categories and route it to an eligible, opted-in peer.
-- **Ledger** provides two role-specific views over versioned, explainable change records: physicians see reviewed updates relevant to their specialty or explicitly explored topics, while authorized Impiricus staff review and audit changes to the data fields a pharma client may receive.
+- **Ledger** gives physicians a reviewed, versioned view of recent pharma and drug-product changes: what changed between versions, why the update is relevant, and four eligible specialists they can ask about the practical implications. It does not provide prescribing instructions or patient-specific treatment advice.
 
 The products share a policy pipeline, not one mathematical algorithm:
 
@@ -30,7 +30,7 @@ The hackathon prototype must prove direct HCP value, visible consent effects, ev
 | P0 | Shared foundation | Persona/role switching, purpose and consent evaluation, provenance labels, data broker, and audit events |
 | P0 | Doctor Connect | Structured question, hard eligibility filters, transparent ranking, request/response flow, and mutual contact consent |
 | P1 | Practice Mirror | One defensible cohort comparison with visible limits and no quality claim |
-| P1 | Ledger | HCP: one reviewed before/after update with relevance reasons and a Connect handoff. Compliance: one proposed field addition, semantic diff, deterministic rules, reviewer action, and version record |
+| P1 | Ledger | One reviewed before/after drug-product update with relevance reasons, four specialist options, and a governed Connect handoff |
 | P2 | Extensions | Reusable answers, DocUpdate targeting, and scheduled policy re-evaluation |
 
 If time collapses, preserve one polished Doctor Connect path plus one compact, working path for Mirror and Ledger. The demo uses prepared synthetic data and must work without a network connection.
@@ -67,13 +67,13 @@ Consent records subject, purpose, data categories, audience, status, effective/e
 
 Self-view, aggregate contribution, peer discoverability, and contact disclosure must never be treated as one permission.
 
-### Client data contract
+### Reviewed product change
 
-Ledger stores immutable versions with allowed fields, state, effective time, creator, and previous-version link. Effective approved versions are not edited in place.
+Ledger stores an immutable reviewed change record with the company, product, prior and current versions, structured change summary, source/review provenance, relevance reasons, and specialist references for a governed discussion handoff.
 
 ## Shared system design
 
-Use one responsive web application with HCP navigation for Mirror, Connect, and a physician-safe Updates view; compliance navigation exposes the internal Ledger and Audit views. Use a seeded persona switcher instead of production authentication.
+Use one responsive web application with physician navigation for Mirror, Connect, and Updates, plus a shared Audit view. Use a seeded persona switcher instead of production authentication.
 
 The hackathon should be a modular monolith with conceptual modules for profiles, policy, Mirror, Connect, Ledger, explanations, and audit. The shared, importable core exposes behavior equivalent to:
 
@@ -89,12 +89,12 @@ The product computations stay separate:
 ```ts
 computeCohortComparison(...) // median and quartiles for Mirror
 rankEligiblePeers(...)       // filtered weighted scoring for Connect
-computeSchemaDiff(...)       // normalized semantic diff for Ledger
+  computeSchemaDiff(...)       // normalized before/after diff for reviewed Ledger changes
 ```
 
 All feature reads pass through a data broker that accepts actor, subject, purpose, recipient, and requested fields. It calls the policy service and returns only allowed data. Feature code must not read restricted profiles or consent collections directly.
 
-Suggested MongoDB collections are `hcp_profiles`, `field_provenance`, `consent_grants`, `question_taxonomy`, `consult_requests`, `structured_answers`, `client_contract_versions`, `policy_rules`, and `audit_events`.
+Suggested MongoDB collections are `hcp_profiles`, `field_provenance`, `consent_grants`, `question_taxonomy`, `consult_requests`, `structured_answers`, `reviewed_product_changes`, `policy_rules`, and `audit_events`.
 
 ## Deterministic policy service
 
@@ -108,7 +108,7 @@ Rules are versioned configuration with IDs, descriptions, purposes, audiences, c
 - `AGGREGATE_MIN_001`: cohorts must meet the configured minimum.
 - `STATE_DEMO_001`: a synthetic jurisdiction combination requires manual review.
 
-Ledger has more detailed synthetic fixtures for unsupported purpose, consent mismatch, group size, retention, and jurisdiction review. Rule edits create new versions and audit events.
+Ledger updates use the same policy version, provenance, and audit foundation as the other products. Rule edits create new versions and audit events.
 
 ## Practice Mirror
 
@@ -157,19 +157,13 @@ Core endpoints include taxonomy, preview, answer search, request creation, match
 
 ## Ledger
 
-Ledger has two strictly separated role-specific lenses over versioned changes.
+Ledger is a physician-facing medicine-change explorer, shown in navigation as **Updates**. A reviewed update names the synthetic company and product, shows the previous and current versions, states the concrete change (for example, component X was replaced by component Y), and explains why the physician is seeing it.
 
-For an HCP, the navigation label is **Updates**. It shows reviewed synthetic practice, resource, or industry changes with a before/after version, provenance, and explicit relevance reasons. A Spark-style notification may deep-link here. Relevance may use specialty, explicit follows, or a topic the physician explored in Mirror or Connect; it must not infer patient treatment, expose client data, or claim the physician needs clinical improvement. An update may prefill a governed Doctor Connect question.
+Each update offers exactly four eligible, verified, opted-in specialists from the governed peer directory. “Ask a peer about this” passes only the therapeutic area and approved topic into Doctor Connect. It never passes patient data, inferred treatment decisions, or a prescription recommendation. Specialist contact remains subject to Doctor Connect’s mutual-consent flow.
 
-For compliance, Ledger manages the operative structured data scope for a pharma client. It does not ingest or interpret legal text in the prototype.
+The Ledger computation is a semantic before/after comparison over reviewed product records. Policy, provenance, relevance filtering, and audit remain shared Relay capabilities. Ledger does not expose client data contracts, approve data scope, interpret legal text, or make clinical decisions.
 
-A proposal selects a governed catalog field and configures granularity, purpose, retention, filters, and aggregation threshold. The diff compares canonical objects, not lines, and emits additions, removals, and property changes. Rules run against the complete proposed version so interactions with existing fields are not missed.
-
-Only authorized reviewers can approve, request changes, or reject. A requester cannot approve their own proposal. Blocks prevent approval; review results require disposition. An approved version is activated by its approved hash at the scheduled time. Downstream exports resolve the effective schema by client and timestamp.
-
-The main fixture adds `last_resource_request_at` at individual level for campaign measurement. It triggers scope review and a consent-purpose block. Changing to aggregate with a minimum group size clears the block while retaining review. A policy-update simulation then creates a new rule version, re-evaluates affected effective schemas, and opens a review task without silently changing current access.
-
-Core endpoints include catalog, current scope, versions, proposal CRUD/submit, diff, review, activate, and historical scope lookup.
+Core prototype data includes three synthetic industry changes, specialty relevance reasons, provenance labels, and four specialist references per update. Production still needs editorial review, source verification, pharmacovigilance and product-complaint handling, and a decision on whether brands can be shown.
 
 ## Explanations and AI boundary
 

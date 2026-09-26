@@ -27,10 +27,17 @@ This file records durable decisions. New entries should include a date, status, 
 
 ### 2026-09-26 — Ledger has separate HCP and compliance views
 
-- **Status:** Accepted
+- **Status:** Superseded by the physician-facing Ledger decision below
 - **Decision:** Use the `/ledger` route as a shared versioned-change surface with role-specific data and controls. HCPs see reviewed practice and industry updates under the navigation label “Updates”; compliance users retain the client data-scope Ledger. HCP relevance may use specialty, explicit follows, and topics explored in Relay, but must expose why an update was shown and must not infer patient treatment or recommend clinical improvement.
 - **Reason:** The same provenance, before/after, version-history, and audit foundation can make Spark-style notifications more transparent to physicians without exposing contract-governance workflows or conflating educational updates with legal/data-scope review.
 - **Affected:** HCP navigation, Ledger routing, data broker, synthetic fixtures, Spark handoff concept, Doctor Connect handoff, audit, and product documentation.
+
+### 2026-09-26 — Ledger is a physician-facing medicine-change explorer
+
+- **Status:** Accepted
+- **Decision:** Ledger is presented as Updates for physicians. It shows reviewed synthetic pharma and drug-product changes with concrete before/after versions, relevance reasons, and four eligible specialists for a governed Doctor Connect discussion. The active UI no longer presents Ledger as an internal client data-scope workflow.
+- **Reason:** The product value is helping physicians understand what changed in a medicine and decide what general questions to discuss with specialists. Policy and audit remain shared foundations, not Ledger’s user-facing purpose.
+- **Affected:** Ledger plan, maintained context, navigation, home screen, update fixtures, specialist handoff, and demo narrative.
 
 ### 2026-09-26 — Relay is the product name
 

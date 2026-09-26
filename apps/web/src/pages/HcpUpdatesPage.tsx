@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { ArrowRight, BellRing, Check, Clock3, History, Network, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { readPracticeUpdates } from "@relay/relay-core";
+import { readConnectCandidates, readPracticeUpdates } from "@relay/relay-core";
 import { useDemo } from "../demo-context";
 import { DemoNotice, PageHeading, ProvenanceBadge } from "../components/ui";
 
@@ -12,10 +12,15 @@ export function HcpUpdatesPage() {
   const { persona, record } = useDemo();
   const specialty = persona.subtitle.split(" · ")[0];
   const updateRead = useMemo(() => readPracticeUpdates({ actorId: persona.id, specialty }), [persona.id, specialty]);
+  const specialistRead = useMemo(() => readConnectCandidates(), []);
   const updates = updateRead.data;
   const [selectedId, setSelectedId] = useState(updates[0]?.id ?? "");
   const [reviewedIds, setReviewedIds] = useState<string[]>([]);
   const selected = updates.find((update) => update.id === selectedId) ?? updates[0];
+  const specialists = selected.specialistIds
+    .map((id) => specialistRead.data.find((profile) => profile.id === id))
+    .filter((profile): profile is NonNullable<typeof profile> => Boolean(profile))
+    .slice(0, 4);
 
   if (!selected) return <div className="empty-updates"><BellRing size={30} /><h1>No reviewed updates right now</h1><p>Relay will show relevant, permitted updates here when they are available.</p></div>;
 
@@ -36,7 +41,7 @@ export function HcpUpdatesPage() {
   };
 
   return <div className="stack-lg">
-    <PageHeading eyebrow="Ledger Updates" title="What changed in topics you follow" description="Reviewed updates matched to your specialty and topics you explored. Nothing here is patient-specific or a treatment recommendation." />
+    <PageHeading eyebrow="Ledger Updates" title="What changed in medicines you follow" description="Reviewed pharma and drug-product changes matched to your specialty. Use them to start an informed discussion with specialists, not as prescribing instructions." />
     <div className="spark-banner"><BellRing size={20} /><div><strong>Opened from a Spark-style notification</strong><span>A reviewed update matched your professional interests.</span></div><DemoNotice /></div>
 
     <div className="updates-layout">
@@ -61,6 +66,7 @@ export function HcpUpdatesPage() {
         </div>
         <div className="why-shown"><Sparkles size={18} /><div><span>Why you are seeing this</span>{selected.relevanceReasons.map((reason) => <strong key={reason}>{reason}</strong>)}</div></div>
         <p className="update-detail-copy">{selected.detail}</p>
+        <div className="specialist-section"><div><span>Discuss this change with</span><h3>{specialists.length} eligible specialists</h3></div><div className="specialist-grid">{specialists.map((specialist) => <div className="specialist-card" key={specialist.id}><strong>{specialist.displayName}</strong><span>{specialist.specialty} · {specialist.state}</span><small>Verified · opted in</small></div>)}</div></div>
         <div className="update-meta"><span><Clock3 size={14} /> Reviewed {formatDemoDate(selected.publishedAt)}</span><span><History size={14} /> Version history preserved</span></div>
         <div className="panel-actions"><button className="text-button" onClick={markReviewed}>{reviewedIds.includes(selected.id) ? "Reviewed" : "Mark as reviewed"}</button><button className="button primary" onClick={askPeer}><Network size={17} /> Ask a peer about this <ArrowRight size={17} /></button></div>
       </section>

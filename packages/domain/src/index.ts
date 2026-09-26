@@ -101,6 +101,7 @@ export type PracticeUpdate = {
   relevanceReasons: string[];
   audienceSpecialties: string[];
   suggestedTopics: string[];
+  specialistIds: string[];
   provenance: Provenance[];
 };
 

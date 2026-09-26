@@ -6,7 +6,7 @@ Last updated: 2026-09-26.
 
 - **Stage:** Functional browser-first hackathon prototype.
 - **Repository contents:** Product/system plans, maintained context, contribution guidance, module boundaries, and a TypeScript workspace.
-- **Application code:** React/Vite web shell with Home, Practice Mirror, Doctor Connect, role-specific HCP Updates and compliance Ledger views, and a shared Audit view.
+- **Application code:** React/Vite web shell with Home, Practice Mirror, Doctor Connect, physician-facing Ledger Updates, and a shared Audit view.
 - **Tests:** Ten deterministic tests across cohort comparison, matching, policy, data-broker, update filtering, and semantic-diff behavior.
 - **Demo readiness:** Core click paths work from synthetic seed data and the production bundle builds. The simplified physician screens pass headless Chrome desktop review; hands-on mobile interaction QA remains open.
 - **Data:** Thirty-six synthetic HCP profiles, prescribing fixtures, three reviewed-update fixtures, client-scope fields, consent failure cases, and a fictional versioned policy.
@@ -52,6 +52,13 @@ The next demo-hardening milestone is complete when:
 - **Verified:** `npm run check` passes TypeScript validation, ten tests, and the production build. The HCP Updates screen was visually checked in headless Chrome at 1440 × 1000.
 - **Open:** Production Spark event ingestion, editorial review workflow, explicit topic-follow controls, and real notification delivery are not implemented.
 - **Next:** Add an end-to-end test for Spark notification → Updates → Doctor Connect and define the reviewed update publishing workflow.
+
+### 2026-09-26 — Ledger medicine-change direction
+
+- **Changed:** Reframed Ledger as a physician-facing medicine-change explorer, replaced generic resource fixtures with three synthetic pharma/product component changes, displayed four eligible specialists per update, and removed the internal client data-scope editor from active navigation and routing.
+- **Verified:** `npm run check` passes TypeScript validation, ten tests, and the production build.
+- **Open:** Source verification, editorial publishing, pharmacovigilance handling, and hands-on mobile interaction QA remain open.
+- **Next:** Add browser coverage for update selection, four-specialist display, and the governed Doctor Connect handoff.
 
 ### 2026-09-26 — Required general-question confirmation
 

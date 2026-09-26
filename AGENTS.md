@@ -32,7 +32,7 @@ The pitch predates a safety and architecture review. Never restore a pitch claim
 - Practice Mirror is descriptive. It must not infer guideline adherence, care quality, diagnosis, indication, treatment appropriateness, or patient eligibility from Part D data.
 - Doctor Connect uses governed categorical questions and structured responses in the hackathon build. It has no open chat, attachments, patient narratives, or exact dose-entry fields.
 - Peer identity requires active matching consent. Contact information requires active consent from both physicians and a fresh authorization check when retrieved.
-- Ledger organizes schema changes and routes decisions. It does not interpret contracts, give legal conclusions, or let an LLM approve a change.
+- Ledger gives physicians reviewed before/after drug-product changes and routes governed specialist discussions. It does not recommend treatment, change prescriptions, interpret contracts, or let an LLM make clinical decisions.
 - NPI matching is not credential verification. Prototype credential status is synthetic.
 - Public data, declared data, derived data, consent, permitted purpose, aggregation, and identity disclosure are separate concepts.
 - Every product data read goes through the shared data broker and deterministic policy service.
