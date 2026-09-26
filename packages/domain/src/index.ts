@@ -135,3 +135,60 @@ export type SchemaDiff = {
   before?: AllowedField;
   after?: AllowedField;
 };
+
+// --- Peer domain clustering (descriptive unsupervised grouping) ---
+// These types support grouping physicians by their prescribing mix so a
+// physician can see peers who practice in a similar domain. This is a
+// DESCRIPTIVE overlap signal only. It does not measure expertise, quality,
+// adherence, or treatment appropriateness, and it does not replace Doctor
+// Connect's hard eligibility filters or transparent ranking.
+
+export type DrugClassId = "sglt2" | "glp1" | "dpp4" | "basal" | "metformin";
+
+export type DrugClassRef = {
+  classId: DrugClassId;
+  classLabel: string;
+};
+
+export type PrescribingProfile = {
+  hcpId: string;
+  specialty: string;
+  state: string;
+  year: number;
+  // Fraction of the physician's tracked claims in each drug class. Values are
+  // non-negative and sum to approximately 1 across the tracked classes.
+  classShares: Record<DrugClassId, number>;
+  totalClaims: number;
+};
+
+export type DomainCluster = {
+  id: string;
+  label: string;
+  dominantClasses: { classId: DrugClassId; classLabel: string; share: number }[];
+  centroid: Record<DrugClassId, number>;
+  memberIds: string[];
+  size: number;
+};
+
+export type ClusterAssignment = {
+  hcpId: string;
+  clusterId: string;
+  distanceToCentroid: number;
+};
+
+export type DomainClusteringResult = {
+  clusters: DomainCluster[];
+  assignments: ClusterAssignment[];
+  featureClasses: DrugClassRef[];
+  iterations: number;
+  seed: number;
+};
+
+export type DomainPeerSuggestion = {
+  profile: HcpProfile;
+  similarity: number;
+  clusterId: string;
+  clusterLabel: string;
+  sharedDomainClasses: string[];
+  reasons: string[];
+};

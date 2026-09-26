@@ -7,7 +7,7 @@ Last updated: 2026-09-26.
 - **Stage:** Functional browser-first hackathon prototype.
 - **Repository contents:** Product/system plans, maintained context, contribution guidance, module boundaries, and a TypeScript workspace.
 - **Application code:** React/Vite web shell with Home, Practice Mirror, Doctor Connect, physician-facing Ledger Updates, and a shared Audit view.
-- **Tests:** Ten deterministic tests across cohort comparison, matching, policy, data-broker, update filtering, and semantic-diff behavior.
+- **Tests:** Sixteen deterministic tests across cohort comparison, matching, policy, data-broker, update filtering, semantic-diff, and peer domain clustering behavior.
 - **Demo readiness:** Core click paths work from synthetic seed data and the production bundle builds. The simplified physician screens pass headless Chrome desktop review; hands-on mobile interaction QA remains open.
 - **Data:** Thirty-six synthetic HCP profiles, prescribing fixtures, three reviewed-update fixtures, client-scope fields, consent failure cases, and a fictional versioned policy.
 - **Deployment:** Local Vite build only; no hosted deployment or backend is configured.
@@ -45,6 +45,13 @@ The next demo-hardening milestone is complete when:
 - the team has made and recorded the local-only versus hosted-demo decision.
 
 ## Iteration log
+
+### 2026-09-26 — Peer domain clustering (AI/ML backend, step 1)
+
+- **Changed:** Added `@relay/peer-clustering`, a deterministic seeded k-means over synthetic per-physician prescribing vectors, plus `suggestDomainPeers` for "doctors in your domain" suggestions. Added clustering domain types, 38 synthetic prescribing profiles (36 HCPs + 2 personas across three latent domains) in `demo-seed`, and a governed `readClusteringDataset` broker read (`AGGREGATE_ANALYTICS`) re-exported from `relay-core`. Peer suggestions are gated by `PEER_MATCHING` consent.
+- **Verified:** `npm run check` passes TypeScript validation, 16 tests (6 new), and the production build. Tests cover determinism, full k-partition, latent-domain recovery, consent gating, similarity ordering, and consent-revocation exclusion.
+- **Open:** No UI is wired to the clustering output yet, and Gemini phrasing of domain labels is not implemented (deterministic labels only). Clustering is descriptive and must not be presented as expertise, quality, or a Connect ranking substitute.
+- **Next:** Wire a "peers in your domain" view onto the clustering output (reusing the data broker), then optionally add Gemini phrasing with the deterministic label as fallback.
 
 ### 2026-09-26 — HCP Ledger Updates view
 

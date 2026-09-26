@@ -1,5 +1,5 @@
 export { createAuditEvent as recordAuditEvent } from "@relay/audit";
-export { readClientScope, readConnectCandidates, readMirrorDataset, readPracticeUpdates } from "@relay/data-broker";
+export { readClientScope, readClusteringDataset, readConnectCandidates, readMirrorDataset, readPracticeUpdates } from "@relay/data-broker";
 export { authorizeUse, POLICY_VERSION } from "@relay/policy-engine";
 export type { AccessDecision, AuditEvent, Provenance } from "@relay/domain";
 

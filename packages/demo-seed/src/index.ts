@@ -1,4 +1,4 @@
-import type { AllowedField, HcpProfile, Persona, PracticeUpdate, PrescribingStat } from "@relay/domain";
+import type { AllowedField, DrugClassId, DrugClassRef, HcpProfile, Persona, PracticeUpdate, PrescribingProfile, PrescribingStat } from "@relay/domain";
 
 export const personas: Persona[] = [
   { id: "hcp-maya", name: "Dr. Maya Chen", role: "hcp", subtitle: "Endocrinology · Atlanta, GA", initials: "MC" },
@@ -105,4 +105,53 @@ export const currentClientFields: AllowedField[] = [
   { fieldId: "profile.specialty", label: "NPI specialty", classification: "public", granularity: "individual", purpose: "provider_directory", retentionDays: 730 },
   { fieldId: "engagement.state_counts", label: "State engagement counts", classification: "derived", granularity: "aggregate", purpose: "campaign_measurement", retentionDays: 365, minimumGroupSize: 11 },
   { fieldId: "resources.request_counts", label: "Resource request totals", classification: "derived", granularity: "aggregate", purpose: "campaign_measurement", retentionDays: 365, minimumGroupSize: 11 },
+];
+
+// --- Synthetic prescribing vectors for peer domain clustering ---
+// Each physician gets a share across five drug classes. Values are synthetic
+// and generated deterministically so clustering is reproducible offline. Three
+// latent "domains" are seeded so the unsupervised model has real structure to
+// recover; intra-domain noise keeps physicians from being identical.
+
+export const drugClasses: DrugClassRef[] = [
+  { classId: "sglt2", classLabel: "SGLT2 inhibitors" },
+  { classId: "glp1", classLabel: "GLP-1 receptor agonists" },
+  { classId: "dpp4", classLabel: "DPP-4 inhibitors" },
+  { classId: "basal", classLabel: "Basal insulin" },
+  { classId: "metformin", classLabel: "Metformin & other orals" },
+];
+
+const drugClassOrder: DrugClassId[] = ["sglt2", "glp1", "dpp4", "basal", "metformin"];
+
+// Base prescribing mixes for the three latent practice domains.
+const domainArchetypes: Record<DrugClassId, number>[] = [
+  { sglt2: 0.44, glp1: 0.16, dpp4: 0.1, basal: 0.1, metformin: 0.2 }, // SGLT2-led
+  { sglt2: 0.15, glp1: 0.45, dpp4: 0.1, basal: 0.1, metformin: 0.2 }, // GLP-1-led
+  { sglt2: 0.1, glp1: 0.1, dpp4: 0.3, basal: 0.3, metformin: 0.2 }, // traditional (DPP-4 + basal)
+];
+
+// Deterministic pseudo-noise in [0, 1) from two integer seeds.
+function deterministicNoise(a: number, b: number): number {
+  const x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+function buildPrescribingProfile(hcpId: string, specialty: string, state: string, domainIndex: number, seed: number): PrescribingProfile {
+  const archetype = domainArchetypes[domainIndex];
+  const raw = drugClassOrder.map((classId, position) => {
+    const delta = (deterministicNoise(seed + 1, position + 1) - 0.5) * 0.12;
+    return Math.max(0.02, archetype[classId] + delta);
+  });
+  const total = raw.reduce((sum, value) => sum + value, 0);
+  const classShares = drugClassOrder.reduce((acc, classId, position) => {
+    acc[classId] = Number((raw[position] / total).toFixed(4));
+    return acc;
+  }, {} as Record<DrugClassId, number>);
+  return { hcpId, specialty, state, year: 2024, classShares, totalClaims: 120 + seed * 5 };
+}
+
+export const prescribingProfiles: PrescribingProfile[] = [
+  buildPrescribingProfile("hcp-maya", "Endocrinology", "GA", 1, 100),
+  buildPrescribingProfile("hcp-jordan", "Internal Medicine", "GA", 0, 200),
+  ...hcpProfiles.map((profile, index) => buildPrescribingProfile(profile.id, profile.specialty, profile.state, index % 3, index + 1)),
 ];

@@ -4,6 +4,14 @@ This file records durable decisions. New entries should include a date, status, 
 
 ## Accepted baseline decisions
 
+### 2026-09-26 — Peer domain clustering is a deterministic, descriptive computation
+
+- **Status:** Accepted
+- **Decision:** Add peer domain clustering as a separate named computation in `@relay/peer-clustering`. It groups physicians by their synthetic prescribing mix using a deterministic, seeded k-means (implemented in TypeScript, offline, reproducible) and suggests co-clustered peers. Prescribing vectors are read through the data broker under `AGGREGATE_ANALYTICS`, and every peer suggestion is gated by an active `PEER_MATCHING` grant. Any future Gemini use only phrases the deterministic result and must keep the deterministic output as its fallback.
+- **Reason:** The team needs an "AI/ML" grouping that suggests which doctors fall in a physician's domain, while preserving offline determinism, the shared broker/policy pipeline, and the invariant that each product keeps a distinct named computation.
+- **Boundary:** Clustering is descriptive prescribing-domain overlap only. It does not claim expertise, quality, adherence, indication, or treatment appropriateness, and it does not replace Doctor Connect's hard eligibility filters or transparent weighted ranking. Prescribing signals may describe a domain but cannot stand in for expertise in Connect ranking.
+- **Affected:** `packages/domain`, `packages/demo-seed`, `packages/data-broker`, `packages/relay-core`, the new `features/peer-clustering`, tests, and the future Doctor Connect / discovery UI.
+
 ### 2026-09-26 — Browser-first TypeScript prototype stack
 
 - **Status:** Accepted

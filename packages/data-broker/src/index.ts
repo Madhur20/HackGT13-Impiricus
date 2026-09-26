@@ -1,5 +1,5 @@
-import { currentClientFields, hcpProfiles, practiceUpdates, prescribingStats } from "@relay/demo-seed";
-import type { AccessDecision, AllowedField, HcpProfile, PracticeUpdate, PrescribingStat, Purpose } from "@relay/domain";
+import { currentClientFields, hcpProfiles, practiceUpdates, prescribingProfiles, prescribingStats } from "@relay/demo-seed";
+import type { AccessDecision, AllowedField, HcpProfile, PracticeUpdate, PrescribingProfile, PrescribingStat, Purpose } from "@relay/domain";
 import { authorizeUse, POLICY_VERSION } from "@relay/policy-engine";
 
 export type BrokerResult<T> = {
@@ -14,6 +14,17 @@ export function readMirrorDataset(): BrokerResult<PrescribingStat[]> {
   return {
     data: prescribingStats.map((record) => ({ ...record })),
     purpose: "SELF_INSIGHT",
+    decision: allowed(),
+  };
+}
+
+export function readClusteringDataset(): BrokerResult<PrescribingProfile[]> {
+  // Prescribing vectors feed a descriptive domain-clustering model. The read is
+  // scoped to aggregate analytics; downstream peer suggestions still require an
+  // active PEER_MATCHING grant before any physician identity is surfaced.
+  return {
+    data: prescribingProfiles.map((profile) => ({ ...profile, classShares: { ...profile.classShares } })),
+    purpose: "AGGREGATE_ANALYTICS",
     decision: allowed(),
   };
 }
