@@ -157,3 +157,45 @@ describe("network graph on synthetic seed data", () => {
     expect(afterScore).toBeGreaterThan(beforeScore);
   });
 });
+
+describe("contextual bandit policies", () => {
+  const base = {
+    need: seedNeed,
+    candidates: hcpProfiles,
+    expertiseEdges: seedExpertiseEdges,
+    peerHelpProfiles: seedPeerHelpProfiles,
+    trustEdges: seedTrustEdges,
+    tags: seedExpertiseTags,
+    limit: 12,
+  };
+
+  it("UCB is deterministic and gives unproven eligible peers an exploration bonus", () => {
+    const a = matchPeers({ ...base, policy: "ucb" });
+    const b = matchPeers({ ...base, policy: "ucb" });
+    expect(a.matches.map((match) => match.profile.id)).toEqual(b.matches.map((match) => match.profile.id));
+
+    // hcp-16 is eligible but has no seeded trust; UCB must still surface it with
+    // a positive trust value (exploration) so the network can learn about it.
+    const explorer = a.matches.find((match) => match.profile.id === "hcp-16");
+    expect(explorer?.trustConnections).toBe(0);
+    expect(explorer?.trustScore ?? 0).toBeGreaterThan(0);
+
+    // A validated expert (real reward history) still outranks the explorer.
+    const expertScore = a.matches.find((match) => match.profile.id === "hcp-1")?.score ?? 0;
+    expect(expertScore).toBeGreaterThan(explorer?.score ?? 0);
+  });
+
+  it("Thompson sampling is reproducible for a fixed seed", () => {
+    const a = matchPeers({ ...base, policy: "thompson", seed: 7 });
+    const b = matchPeers({ ...base, policy: "thompson", seed: 7 });
+    expect(a.matches.map((match) => match.profile.id)).toEqual(b.matches.map((match) => match.profile.id));
+    expect(a.matches.every((match) => match.trustScore >= 0 && match.trustScore <= 1)).toBe(true);
+  });
+
+  it("keeps hard eligibility filters ahead of any bandit policy", () => {
+    for (const policy of ["ucb", "thompson"] as const) {
+      const result = matchPeers({ ...base, policy, seed: 3 });
+      expect(result.matches.every((match) => match.profile.verified && match.profile.matchingConsent && match.profile.availability !== "unavailable")).toBe(true);
+    }
+  });
+});

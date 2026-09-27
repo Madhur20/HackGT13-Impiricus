@@ -12,6 +12,14 @@ This file records durable decisions. New entries should include a date, status, 
 - **Boundaries:** Expertise evidence and validated trust drive ranking — never prescribing volume or NPI alone; hard filters precede ranking; zero patient data and no off-platform content in trust or feedback; structured categorical intent only in the hackathon, with any future Gemini intent extraction requiring a deterministic fallback and holding no eligibility or final-peer authority; NPI is identity, not credentialing.
 - **Affected:** `packages/domain`, new `features/network-graph`, `docs/network-graph-plan.md`, `org/` context/decisions/status, and future `demo-seed` data, data-broker reads, Doctor Connect UI, and audit events.
 
+### 2026-09-26 — Network Graph ranking is a contextual bandit (reinforcement learning)
+
+- **Status:** Accepted
+- **Decision:** Rank eligible peers with a contextual multi-armed bandit instead of a fixed trust average. Context is the request plus each peer's expertise evidence; actions are the eligible peers; reward is consented post-connection feedback (`yes = 1.0`, `somewhat = 0.5`, `no = 0.0`) maintained as a Beta posterior per (expert, topic) via `recordConnectionOutcome`. The default policy is deterministic **UCB** (`mean + 0.15 * sqrt(ln(N+1)/(nᵢ+1))`, clamped to `[0,1]`, bonus `0` when there is no feedback yet); **Thompson sampling** (seeded Mulberry32 + Marsaglia–Tsang gamma to draw `Beta(1+successes, 1+failures)`) is an optional reproducible stochastic policy. The trust estimate keeps the 0.30 weight in the blended score.
+- **Reason:** The real problem is exploit-vs-explore: reward proven experts while still giving promising, under-connected peers visibility so isolated physicians are not permanently starved. A single-step contextual bandit models this precisely; a deep sequential MDP would add brittle, unverifiable state for no benefit given independent one-shot connections with immediate feedback.
+- **Boundaries:** All hard eligibility filters run strictly before the bandit, so exploration can never surface an ineligible peer; the trust estimate is clamped and bounded to its 0.30 weight so exploration is a tie-breaker, not an override of expertise; UCB is the deterministic fallback required by the AI boundary; the bandit reads only counts, posteriors, and topic IDs — never patient data.
+- **Affected:** `features/network-graph` (matcher, tests), `docs/network-graph-plan.md`, `org/CONTEXT.md`, `org/STATUS.md`.
+
 ### 2026-09-26 — Peer domain clustering is a deterministic, descriptive computation
 
 - **Status:** Accepted

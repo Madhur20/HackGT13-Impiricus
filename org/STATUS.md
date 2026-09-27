@@ -7,7 +7,7 @@ Last updated: 2026-09-26.
 - **Stage:** Functional browser-first hackathon prototype.
 - **Repository contents:** Product/system plans, maintained context, contribution guidance, module boundaries, and a TypeScript workspace.
 - **Application code:** React/Vite web shell with Home, Practice Mirror, Doctor Connect, physician-facing Ledger Updates, and a shared Audit view.
-- **Tests:** Twenty-five deterministic tests across cohort comparison, matching, policy, data-broker, update filtering, semantic-diff, peer domain clustering/discovery, and Network Graph expertise/trust matching and learning behavior (including validation on synthetic graph fixtures).
+- **Tests:** Twenty-eight deterministic tests across cohort comparison, matching, policy, data-broker, update filtering, semantic-diff, peer domain clustering/discovery, and Network Graph expertise/trust matching, contextual-bandit ranking (UCB determinism/exploration, seeded Thompson reproducibility, eligibility), and learning behavior (including validation on synthetic graph fixtures).
 - **Demo readiness:** Core click paths work from synthetic seed data and the production bundle builds. The simplified physician screens pass headless Chrome desktop review; hands-on mobile interaction QA remains open.
 - **Data:** Thirty-six synthetic HCP profiles, prescribing fixtures, per-physician prescribing vectors, Network Graph fixtures (expertise tags/edges, peer-help profiles, seeded trust edges), three reviewed-update fixtures, client-scope fields, consent failure cases, and a fictional versioned policy.
 - **Deployment:** Local Vite build only; no hosted deployment or backend is configured.
@@ -45,6 +45,13 @@ The next demo-hardening milestone is complete when:
 - the team has made and recorded the local-only versus hosted-demo decision.
 
 ## Iteration log
+
+### 2026-09-26 — Contextual bandit ranking (RL step 2)
+
+- **Changed:** Replaced the trust-average in `@relay/network-graph` with a contextual multi-armed bandit. Context is the request plus each peer's expertise evidence; reward is consented feedback (`yes`/`somewhat`/`no` → `1.0`/`0.5`/`0.0`) kept as a Beta posterior per (expert, topic). Added a deterministic **UCB** policy (default, exploration bonus shrinks with evidence and is `0` with no feedback yet) and a seeded **Thompson sampling** policy (Mulberry32 PRNG + Marsaglia–Tsang gamma to draw `Beta(1+successes, 1+failures)`), both clamped to the 0.30 trust weight. Hard eligibility filters still run strictly before the bandit. `matchPeers` now accepts `policy`, `seed`, and `explorationC`. Documented in `docs/network-graph-plan.md` (new §6.5), `org/DECISIONS.md`, and `org/CONTEXT.md`.
+- **Verified:** `npm run check` passes TypeScript validation, 28 tests (3 new bandit tests), and the production build. New tests cover UCB determinism plus exploration of an unproven eligible peer (validated expert still outranks it), Thompson reproducibility for a fixed seed within `[0,1]`, and hard-filter enforcement under both policies. All prior Network Graph tests still pass unchanged.
+- **Open:** Not yet wired to the UI or audit; UI does not yet let a user toggle policy or visualize exploration. Weights and exploration constant (`c = 0.15`) are configuration assumptions, not tuned.
+- **Next:** Wire matching + feedback into the Doctor Connect UI and audit timeline, and optionally surface the funnel and an "exploration" badge in the demo.
 
 ### 2026-09-26 — Synthetic Network Graph data + validation (RL step 1: data first)
 

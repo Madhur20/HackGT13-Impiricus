@@ -165,9 +165,11 @@ Two graphs answer two questions:
 - **Expertise Graph — "who knows what."** `EXPERTISE_IN` edges connect a physician to typed tags (`specialty`, `condition`, `drug_class`, `topic`, `skill`, `affiliation`). Each edge carries evidence sources (`SELF_DECLARED`, `SPECIALTY`, `PUBLICATION`, `IMPIRICUS_SIGNAL`, `SYNTHETIC`) and a derived strength in [0, 1] that rises as independent sources corroborate it.
 - **Trust Graph — "who has successfully helped whom."** A `SUCCESSFUL_PEER_CONNECTION` edge from requester to expert, scoped to a topic, is created or reinforced only from post-connection feedback. It stores interaction and success counts, a usefulness average, and a timestamp — never patient data or off-platform content.
 
-Matching is a deterministic funnel that keeps Doctor Connect's rule that hard filters precede ranking: specialty pool → required-expertise match above an evidence floor → peer-support opt-in and requested help mode → verified + active matching consent + availability (policy engine) → rank by expertise and trust → strongest matches, or an honest no-match. Ranking weights expertise evidence and validated trust; prescribing volume and NPI alone never substitute for expertise.
+Matching is a deterministic funnel that keeps Doctor Connect's rule that hard filters precede ranking: specialty pool → required-expertise match above an evidence floor → peer-support opt-in and requested help mode → verified + active matching consent + availability (policy engine) → contextual-bandit ranking → strongest matches, or an honest no-match. Ranking weights expertise evidence and validated trust; prescribing volume and NPI alone never substitute for expertise.
 
-The graph learns: every completed, consented connection produces structured feedback (useful? outcome?) that updates the Trust Graph, so later matches improve (better graph → better matches → more useful connections → more feedback). The hackathon uses structured categorical need selection; any future Gemini intent extraction is explanation-only, needs a deterministic fallback, and cannot decide eligibility or the final peer. The graph stores zero patient data.
+Ranking over the eligible set is a **contextual bandit (reinforcement learning)**: the request plus each peer's expertise evidence is the context, the eligible peers are the actions, and consented feedback (`yes`/`somewhat`/`no` → `1.0`/`0.5`/`0.0`) is the reward, kept as a Beta posterior per (expert, topic). The default policy is deterministic **UCB** (exploit proven experts, add a shrinking exploration bonus so promising under-connected peers still surface; bonus is `0` with no feedback yet, keeping the demo reproducible); optional seeded **Thompson sampling** is the stochastic variant. All hard filters run before the bandit, and the trust estimate stays clamped to its bounded weight so exploration never surfaces an ineligible peer or overrides real expertise.
+
+The graph learns: every completed, consented connection produces structured feedback (useful? outcome?) that updates the Trust Graph posterior, so later matches improve (better graph → better matches → more useful connections → more feedback). The hackathon uses structured categorical need selection; any future Gemini intent extraction is explanation-only, needs a deterministic fallback, and cannot decide eligibility or the final peer. The graph stores zero patient data.
 
 ## Ledger
 
@@ -226,7 +228,7 @@ The strongest proof of shared infrastructure is the common audit timeline with o
 - Every displayed data point has a provenance label.
 - Every policy decision creates an audit event.
 - Restricted fields cannot leak into explanations.
-- Network Graph matching applies hard filters before ranking, ranks on expertise and validated trust rather than prescribing volume or NPI alone, updates trust only from consented post-connection feedback, and stores no patient data.
+- Network Graph matching applies hard filters before the contextual-bandit ranking, ranks on expertise and validated trust (bandit reward) rather than prescribing volume or NPI alone, keeps a deterministic UCB fallback so exploration never surfaces an ineligible peer, updates the trust posterior only from consented post-connection feedback, and stores no patient data.
 - The seeded demo and explanation fallbacks work offline.
 
 ## Production questions requiring Impiricus review

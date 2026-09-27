@@ -79,7 +79,7 @@ Each completed, consented connection asks two structured questions:
 - Was this useful? `yes | somewhat | no`
 - What is the outcome? `resolved | referral_needed | need_another_expert`
 
-That feedback updates the Trust Graph deterministically (see `recordConnectionOutcome`), so subsequent matches for the same topic improve.
+That feedback updates the Trust Graph deterministically (see `recordConnectionOutcome`), so subsequent matches for the same topic improve. Formally, each expert-on-topic keeps a Beta posterior over usefulness: a useful outcome (`yes`/`somewhat`) is a success, `no` is a failure. This is the reward-update step of the contextual bandit in section 6.5.
 
 ## 6. Matching funnel and scoring
 
@@ -90,7 +90,7 @@ specialty pool
   -> required-expertise match above an evidence floor
   -> peer-support opt-in and requested help mode
   -> verified + active matching consent + availability (policy engine)
-  -> rank by expertise and trust
+  -> rank with the contextual bandit (expertise context + learned trust)
   -> strongest matches  (or an honest no-match)
 ```
 
@@ -99,16 +99,38 @@ Ranking score (weights are configuration assumptions, not settled science):
 ```text
 score =
     0.50 expertise evidence for the requested tags
-  + 0.30 validated trust on the requested topic
+  + 0.30 bandit trust estimate on the requested topic
   + 0.10 specialty fit
   + 0.10 availability fit
 ```
 
-- Expertise score rewards covering more of the requested tags with stronger evidence.
-- Trust score is `usefulnessAverage * saturation`, where saturation grows with the number of successful connections and caps at 1, so one lucky interaction cannot dominate.
+- Expertise score rewards covering more of the requested tags with stronger evidence. It is the deterministic *context* the bandit ranks within.
+- The trust term is the bandit's estimate of the expert's expected usefulness on the requested topic (section 6.5), not a fixed average.
 - If nobody clears the expertise evidence floor and eligibility, Relay returns an honest "no strong match" state instead of weakening the filters.
 
-Explanations expose at most three reasons and only fields that contributed, for example: "Relevant cardiac amyloidosis publication history", "Strong prior peer outcomes (5 helpful connections)", "Verified Cardiology", "Available for peer support".
+Explanations expose at most three reasons and only fields that contributed, for example: "Relevant cardiac amyloidosis publication history", "Strong prior peer outcomes (5 helpful connections)", "Verified Cardiology", "Available for peer support". An unproven eligible peer surfaced by exploration is labeled honestly ("Newer peer — surfaced to grow the network").
+
+### 6.5 Contextual bandit (reinforcement learning)
+
+Ranking is framed as a **contextual multi-armed bandit** — the single-step form of reinforcement learning that fits this problem exactly:
+
+- **Context** = the request (specialty, requested topic tags, help mode) plus each eligible peer's expertise evidence.
+- **Actions** = the eligible peers to rank/recommend (arms).
+- **Reward** = the consented post-connection feedback: `yes = 1.0`, `somewhat = 0.5`, `no = 0.0`. Success/failure counts feed a Beta posterior per (expert, topic).
+
+We deliberately do **not** use a deep, sequential MDP: connections are effectively independent one-shot decisions with immediate feedback, so a full MDP would add brittleness and unverifiable state for no benefit. A contextual bandit captures the real learning problem — exploiting proven experts while still exploring promising, under-connected peers so isolated physicians are not permanently starved of visibility.
+
+Two exploration policies share the same posterior:
+
+- **UCB (default, deterministic).** Trust estimate `= mean + c * sqrt(ln(N + 1) / (nᵢ + 1))`, where `mean = successes / interactions`, `nᵢ` is the peer's interactions on the topic, `N` is total interactions across eligible peers, and `c = 0.15` (`DEFAULT_EXPLORATION_C`). The bonus shrinks as a peer accrues evidence and is `0` when the system has no feedback yet, so the demo is fully reproducible and offline. This is the deterministic fallback required by the AI boundary.
+- **Thompson sampling (seeded).** Draw `θ ~ Beta(1 + successes, 1 + failures)` per peer using a seeded PRNG (Mulberry32 + Marsaglia–Tsang gamma), so runs are reproducible for a given seed while still exploring stochastically.
+
+Invariants:
+
+- **Filters before the bandit.** Exploration only ever reorders peers who already passed every hard filter (verified, active matching consent, available, opted in, above the expertise floor). Exploration can never surface an ineligible peer.
+- **Bounded influence.** The trust estimate is clamped to `[0, 1]` and carries only the 0.30 weight, so exploration is a tie-breaker, not an override of real expertise.
+- **No patient data.** The bandit reads only counts, posteriors, and topic IDs.
+- **Reward update = learning step.** `recordConnectionOutcome` is the posterior update; it stays deterministic and auditable.
 
 ## 7. Data model
 
@@ -214,9 +236,12 @@ Matching and feedback reuse Doctor Connect's request/consent/contact endpoints f
 - Expertise strength rises with corroborating sources and is capped at 1.
 - The funnel filters in the correct order and never ranks an ineligible peer.
 - A candidate below the expertise evidence floor is excluded; an honest no-match is returned rather than a weakened filter.
-- Trust aggregation rewards many distinct successful requesters and saturates.
-- `recordConnectionOutcome` creates an edge on first useful feedback, increments interactions and successful connections correctly, and updates the usefulness average.
-- Learning changes ranking: after positive feedback for an expert on a topic, that expert ranks higher for the same need, deterministically.
+- Trust aggregation rewards many distinct successful requesters.
+- `recordConnectionOutcome` creates an edge on first useful feedback, increments interactions and successful connections correctly, and updates the usefulness average (the Beta posterior update).
+- Learning changes ranking: after positive feedback for an expert on a topic, that expert ranks higher for the same need, deterministically (UCB).
+- **Bandit:** UCB ranking is deterministic across runs; an unproven eligible peer receives a positive exploration bonus, while a validated expert still outranks it.
+- **Bandit:** Thompson sampling is reproducible for a fixed seed and stays within `[0, 1]`.
+- **Bandit:** hard eligibility filters hold under every policy (UCB and Thompson).
 - No match result or feedback record contains patient data.
 - Revoked matching consent removes a peer from results immediately.
 
