@@ -22,7 +22,7 @@ This is safer and more credible than the current “guideline-adherence gap” l
 
 ### Build
 
-- One HCP profile with 3–5 drug-class aggregates.
+- Two synthetic HCP profiles with distinct 3–5 drug-class aggregates so persona switching changes the physician's snapshot.
 - One specialty-and-region cohort with at least 10 synthetic peers.
 - One comparison screen with physician share, peer median, interquartile range, sample size, year, and coverage caveat.
 - One detail drawer showing cohort definition, provenance, and excluded data.

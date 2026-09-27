@@ -50,6 +50,16 @@ export const mirrorClasses = [
   { id: "basal", label: "Basal insulin", subject: 22, median: 21, q1: 17, q3: 27 },
 ];
 
+export const mirrorClassesByPersona: Record<string, typeof mirrorClasses> = {
+  "hcp-maya": mirrorClasses,
+  "hcp-jordan": [
+    { id: "sglt2", label: "SGLT2 inhibitors", subject: 26, median: 23, q1: 18, q3: 28 },
+    { id: "glp1", label: "GLP-1 receptor agonists", subject: 22, median: 27, q1: 23, q3: 34 },
+    { id: "dpp4", label: "DPP-4 inhibitors", subject: 17, median: 14, q1: 9, q3: 19 },
+    { id: "basal", label: "Basal insulin", subject: 28, median: 22, q1: 18, q3: 28 },
+  ],
+};
+
 export const practiceUpdates: PracticeUpdate[] = [
   {
     id: "update-sglt2-monitoring-v3",
@@ -64,7 +74,7 @@ export const practiceUpdates: PracticeUpdate[] = [
     relevanceReasons: ["Matches your specialty", "You explored SGLT2 inhibitors in Practice Mirror"],
     audienceSpecialties: ["Endocrinology", "Internal Medicine", "Family Medicine"],
     suggestedTopics: ["Switching", "Monitoring"],
-    specialistIds: ["hcp-1", "hcp-5", "hcp-6", "hcp-7"],
+    specialistIds: ["hcp-1", "hcp-2", "hcp-7", "hcp-8"],
     provenance: [{ label: "Synthetic demo data", source: "SYNTHETIC" }],
   },
   {
@@ -80,7 +90,7 @@ export const practiceUpdates: PracticeUpdate[] = [
     relevanceReasons: ["Matches your specialty", "Related to a topic available in Doctor Connect"],
     audienceSpecialties: ["Endocrinology", "Internal Medicine"],
     suggestedTopics: ["Switching", "Tolerability"],
-    specialistIds: ["hcp-1", "hcp-5", "hcp-6", "hcp-7"],
+    specialistIds: ["hcp-1", "hcp-2", "hcp-7", "hcp-8"],
     provenance: [{ label: "Synthetic demo data", source: "SYNTHETIC" }],
   },
   {
@@ -96,7 +106,7 @@ export const practiceUpdates: PracticeUpdate[] = [
     relevanceReasons: ["Matches your specialty", "Part of your followed therapeutic area"],
     audienceSpecialties: ["Endocrinology", "Internal Medicine", "Family Medicine"],
     suggestedTopics: ["Monitoring", "Switching"],
-    specialistIds: ["hcp-1", "hcp-5", "hcp-6", "hcp-7"],
+    specialistIds: ["hcp-1", "hcp-2", "hcp-7", "hcp-8"],
     provenance: [{ label: "Synthetic demo data", source: "SYNTHETIC" }],
   },
 ];

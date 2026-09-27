@@ -37,17 +37,23 @@ export function readClientScope(): BrokerResult<AllowedField[]> {
 }
 
 export function readPracticeUpdates(input: { actorId: string; specialty: string }): BrokerResult<PracticeUpdate[]> {
-  void input.actorId;
+  const preferredOrder = input.actorId === "hcp-jordan"
+    ? ["update-glp1-conversation-guide-v2", "update-diabetes-resource-index-v4", "update-sglt2-monitoring-v3"]
+    : ["update-sglt2-monitoring-v3", "update-glp1-conversation-guide-v2", "update-diabetes-resource-index-v4"];
   return {
     data: practiceUpdates
       .filter((update) => update.audienceSpecialties.includes(input.specialty))
       .map((update) => ({
         ...update,
-        relevanceReasons: [...update.relevanceReasons],
+        relevanceReasons: [
+          `Matches your ${input.specialty} profile`,
+          input.actorId === "hcp-jordan" ? "Related to a topic in your physician update feed" : update.relevanceReasons[1],
+        ],
         audienceSpecialties: [...update.audienceSpecialties],
         suggestedTopics: [...update.suggestedTopics],
         provenance: [...update.provenance],
-      })),
+      }))
+      .sort((a, b) => preferredOrder.indexOf(a.id) - preferredOrder.indexOf(b.id)),
     purpose: "SELF_INSIGHT",
     decision: allowed(),
   };

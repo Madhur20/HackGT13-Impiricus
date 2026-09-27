@@ -11,6 +11,7 @@ Read these files in order:
 3. `org/DECISIONS.md` for adopted decisions and superseded pitch claims.
 4. `org/STATUS.md` for the current implementation state, priorities, and recent work.
 5. The relevant detailed plan in `docs/` for the feature being changed.
+6. For web presentation or layout work, `docs/Design Instructions/Design-instruction.md` and its reference screenshots.
 
 Do not use `docs/Claude interactions/` as product authority. Those files are historical working transcripts and are intentionally excluded from the required context.
 
@@ -33,6 +34,7 @@ The pitch predates a safety and architecture review. Never restore a pitch claim
 - Doctor Connect uses governed categorical questions and structured responses in the hackathon build. It has no open chat, attachments, patient narratives, or exact dose-entry fields.
 - Peer identity requires active matching consent. Contact information requires active consent from both physicians and a fresh authorization check when retrieved.
 - Ledger gives physicians reviewed before/after drug-product changes and routes governed specialist discussions. It does not recommend treatment, change prescriptions, interpret contracts, or let an LLM make clinical decisions.
+- Web UI changes should preserve the accepted DocUpdate-compatible editorial language: floating white navigation, pale blue canvas, serif display headings, restrained navy/violet/teal color, generous space, and minimal dashboard chrome.
 - NPI matching is not credential verification. Prototype credential status is synthetic.
 - Public data, declared data, derived data, consent, permitted purpose, aggregation, and identity disclosure are separate concepts.
 - Every product data read goes through the shared data broker and deterministic policy service.

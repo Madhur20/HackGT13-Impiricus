@@ -39,6 +39,20 @@ This file records durable decisions. New entries should include a date, status, 
 - **Reason:** The product value is helping physicians understand what changed in a medicine and decide what general questions to discuss with specialists. Policy and audit remain shared foundations, not Ledger’s user-facing purpose.
 - **Affected:** Ledger plan, maintained context, navigation, home screen, update fixtures, specialist handoff, and demo narrative.
 
+### 2026-09-26 — DocUpdate-compatible editorial interface
+
+- **Status:** Accepted
+- **Decision:** Present Relay with the visual structure supplied in the DocUpdate references: a floating white header, pale blue canvas, editorial serif display type, restrained navy/violet/teal palette, generous whitespace, article-style update previews, purple pill actions, and a four-person specialist gallery. Preserve Relay naming and repository-owned UI assets.
+- **Reason:** The prototype should feel like an extension that could live naturally beside the current physician product rather than a separate dense SaaS dashboard.
+- **Affected:** Shared web shell, Overview, Updates, responsive design, design QA, and the integrated system plan.
+
+### 2026-09-26 — Persona switching changes physician data
+
+- **Status:** Accepted
+- **Decision:** Each synthetic HCP persona receives distinct Practice Mirror values, default Doctor Connect context, and Updates ordering/relevance copy. Updates keeps one compact selector and a focused right-side detail panel with previous/next navigation, and specialist counts are derived from eligible returned profiles.
+- **Reason:** A persona switch must demonstrate a real change in physician context, and the focused Updates layout reduces repetition while keeping the reviewed comparison visible.
+- **Affected:** Demo seed, data broker, Practice Mirror, Doctor Connect, Updates, tests, and presentation guidance.
+
 ### 2026-09-26 — Relay is the product name
 
 - **Status:** Accepted
@@ -63,7 +77,7 @@ This file records durable decisions. New entries should include a date, status, 
 ### 2026-09-26 — Shared foundation, separate computations
 
 - **Status:** Accepted
-- **Decision:** Share consent, policy, provenance, explanation, data-access, and audit infrastructure. Keep Mirror cohort statistics, Connect ranking, and Ledger schema diff as separate algorithms.
+- **Decision:** Share consent, policy, provenance, explanation, data-access, and audit infrastructure. Keep Mirror cohort statistics, Connect ranking, and Ledger reviewed product-version comparison as separate algorithms.
 - **Reason:** A universal delta/similarity abstraction would be misleading and harder to verify.
 - **Affected:** Architecture, implementation story, demo, pitch.
 
@@ -111,14 +125,14 @@ This file records durable decisions. New entries should include a date, status, 
 
 ### 2026-09-26 — Ledger is a governed workflow, not legal automation
 
-- **Status:** Accepted
+- **Status:** Superseded by the physician-facing Ledger decision
 - **Decision:** Compare normalized structured scopes, run deterministic internal policies, require authorized human review, and preserve version history. Do not ingest contracts or issue legal approval in the prototype.
 - **Reason:** The product should organize evidence and enforce internal workflow without overstating legal capability.
 - **Affected:** Ledger, AI boundary, review roles, audit.
 
 ### 2026-09-26 — Policy changes trigger review, not silent access changes
 
-- **Status:** Accepted
+- **Status:** Superseded for the active product by the physician-facing Ledger decision; retained as historical internal-workflow context
 - **Decision:** A new policy version re-evaluates affected schemas and opens tasks when outcomes change. It does not silently expand or revoke client access.
 - **Reason:** Access changes require a controlled, reviewable lifecycle.
 - **Affected:** Ledger policy simulator, scheduler roadmap, audit.

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, BadgeCheck, Check, ChevronRight, CircleAlert, Clock3, Info, LockKeyhole, Network, ShieldCheck, UserRoundCheck } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import type { QuestionSelection } from "@relay/domain";
@@ -11,7 +11,7 @@ const steps = ["Your question", "Review", "Choose a peer", "Answer"];
 
 export function ConnectPage() {
   const [params] = useSearchParams();
-  const { record } = useDemo();
+  const { persona, record } = useDemo();
   const [step, setStep] = useState(0);
   const [selection, setSelection] = useState<QuestionSelection>({
     therapeuticArea: params.get("area") ?? "SGLT2 inhibitors",
@@ -25,6 +25,24 @@ export function ConnectPage() {
   const [requesterConsent, setRequesterConsent] = useState(false);
   const [peerConsent, setPeerConsent] = useState(false);
   const [questionConfirmed, setQuestionConfirmed] = useState(false);
+
+  useEffect(() => {
+    if (params.get("area") || params.get("topic")) return;
+    setSelection(persona.id === "hcp-jordan" ? {
+      therapeuticArea: "GLP-1 therapies",
+      topic: "Tolerability",
+      populationBand: "Adults 65–89",
+      conditionTag: "Cardiovascular disease",
+    } : {
+      therapeuticArea: "SGLT2 inhibitors",
+      topic: "Monitoring",
+      populationBand: "Adults 40–64",
+      conditionTag: "Renal impairment",
+    });
+    setStep(0);
+    setSelectedPeerId(null);
+    setQuestionConfirmed(false);
+  }, [params, persona.id]);
 
   const brokerCandidates = useMemo(() => readConnectCandidates().data, []);
   const candidates = useMemo(() => brokerCandidates.map((profile, index) => index === 0 && topPeerRevoked ? { ...profile, matchingConsent: false } : profile), [brokerCandidates, topPeerRevoked]);

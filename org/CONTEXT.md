@@ -21,7 +21,7 @@ authenticated actor and declared purpose
   -> append-only audit event
 ```
 
-The hackathon prototype must prove direct HCP value, visible consent effects, evidence-grounded explanations, and reuse of the same governance foundation in an internal commercial workflow.
+The hackathon prototype must prove direct HCP value, visible consent effects, evidence-grounded explanations, and a governed handoff from a reviewed medicine update into peer discussion.
 
 ## Scope and priority
 
@@ -73,7 +73,7 @@ Ledger stores an immutable reviewed change record with the company, product, pri
 
 ## Shared system design
 
-Use one responsive web application with physician navigation for Mirror, Connect, and Updates, plus a shared Audit view. Use a seeded persona switcher instead of production authentication.
+Use one responsive web application with physician navigation for Mirror, Connect, and Updates, plus a shared Audit view. Use a seeded persona switcher instead of production authentication. Switching physicians must change the synthetic Mirror values, default Connect context, and Updates ordering/relevance so the demo never presents one shared dataset as two people.
 
 The hackathon should be a modular monolith with conceptual modules for profiles, policy, Mirror, Connect, Ledger, explanations, and audit. The shared, importable core exposes behavior equivalent to:
 
@@ -89,7 +89,7 @@ The product computations stay separate:
 ```ts
 computeCohortComparison(...) // median and quartiles for Mirror
 rankEligiblePeers(...)       // filtered weighted scoring for Connect
-  computeSchemaDiff(...)       // normalized before/after diff for reviewed Ledger changes
+compareReviewedVersions(...) // normalized before/after product-version comparison for Ledger
 ```
 
 All feature reads pass through a data broker that accepts actor, subject, purpose, recipient, and requested fields. It calls the policy service and returns only allowed data. Feature code must not read restricted profiles or consent collections directly.
@@ -104,7 +104,7 @@ Rules are versioned configuration with IDs, descriptions, purposes, audiences, c
 
 - `CONSENT_MATCH_001`: peer identity requires active matching consent.
 - `CONSENT_CONTACT_002`: contact fields require active contact consent from both physicians.
-- `CLIENT_SCOPE_001`: a client cannot receive a field outside its approved schema.
+- `UPDATE_REVIEW_001`: Updates returns only reviewed records permitted for the physician's specialty.
 - `AGGREGATE_MIN_001`: cohorts must meet the configured minimum.
 - `STATE_DEMO_001`: a synthetic jurisdiction combination requires manual review.
 
@@ -163,11 +163,11 @@ Each update offers exactly four eligible, verified, opted-in specialists from th
 
 The Ledger computation is a semantic before/after comparison over reviewed product records. Policy, provenance, relevance filtering, and audit remain shared Relay capabilities. Ledger does not expose client data contracts, approve data scope, interpret legal text, or make clinical decisions.
 
-Core prototype data includes three synthetic industry changes, specialty relevance reasons, provenance labels, and four specialist references per update. Production still needs editorial review, source verification, pharmacovigilance and product-complaint handling, and a decision on whether brands can be shown.
+Core prototype data includes three synthetic industry changes, specialty relevance reasons, provenance labels, and four eligible specialist references per update. The desktop interface uses a compact selector beside one focused change panel with previous/next controls. Production still needs editorial review, source verification, pharmacovigilance and product-complaint handling, and a decision on whether brands can be shown.
 
 ## Explanations and AI boundary
 
-Create the factual structured payload first. Gemini may rewrite comparisons, match reasons, or schema changes into concise prose. It cannot:
+Create the factual structured payload first. Gemini may rewrite comparisons, match reasons, or reviewed product changes into concise prose. It cannot:
 
 - authorize a field or identity disclosure;
 - decide legality or approve Ledger changes;
@@ -182,11 +182,11 @@ Validate generated output against a schema and prohibited-language rules. Every 
 
 Audit events record time, actor, action, internal subject IDs, purpose, policy version, rule hits, decision, input hash, and optional previous-event hash. A prototype hash chain demonstrates tamper evidence, not immutability or blockchain.
 
-Do not record patient details, Mirror values, or off-platform conversation content. Mirror logs an authorized self-view. Connect prefers internal IDs over NPI. Ledger retains before/after version identifiers because the schema is the reviewed subject.
+Do not record patient details, Mirror values, or off-platform conversation content. Mirror logs an authorized self-view. Connect prefers internal IDs over NPI. Ledger retains reviewed before/after product-version identifiers.
 
 Baseline controls:
 
-- synthetic HCPs, contracts, and jurisdictions only;
+- synthetic HCPs, companies, products, components, and jurisdictions only;
 - server-side roles, validation, consent, and policy enforcement;
 - no file uploads or unbounded clinical text;
 - secrets outside the repository, transport encryption, redacted logs, and rate limits;
@@ -199,8 +199,8 @@ The strongest proof of shared infrastructure is the common audit timeline with o
 1. State that Relay applies one consent and provenance layer to three confirmed gaps.
 2. Mirror: show a neutral class-level comparison and open cohort/coverage details.
 3. Connect: assemble a categorical question, show only eligible peers, explain the match, and demonstrate that consent changes the result and gates contact.
-4. Ledger: add a field, show the semantic diff and deterministic review/block rules.
-5. Open the shared audit timeline for all three events.
+4. Updates: select a reviewed product change, show the before/after record and four eligible specialists, then continue into Doctor Connect with approved topic context only.
+5. Open the shared audit timeline for all three products.
 
 ## Cross-product acceptance criteria
 
@@ -208,7 +208,8 @@ The strongest proof of shared infrastructure is the common audit timeline with o
 - Contact details remain hidden until both physicians consent and still pass retrieval-time checks.
 - No generated explanation includes a fact absent from its structured inputs.
 - Mirror never claims adherence, quality, indication, or treatment appropriateness.
-- Ledger never calls an automated result legal approval.
+- Updates never recommends changing a prescription or presents a patient-specific conclusion.
+- Every reviewed update shows provenance, relevance reasons, and four specialist options.
 - Every displayed data point has a provenance label.
 - Every policy decision creates an audit event.
 - Restricted fields cannot leak into explanations.
@@ -222,5 +223,5 @@ The strongest proof of shared infrastructure is the common audit timeline with o
 - Credentialing authority and re-verification cadence.
 - Compensation, fair-market-value, and transparency rules.
 - Permitted uses of interaction-derived matching features.
-- Contract retention, export, and audit requirements.
+- Reviewed-update retention, source verification, export, and audit requirements.
 - Real jurisdictions and policies for the rule engine.

@@ -76,7 +76,7 @@ The physician must review and confirm that the question is general and does not 
 
 Navigation label: **Updates**.
 
-The detail view contains:
+The desktop experience uses a compact update selector on the left and one focused detail panel on the right. Previous and next arrow controls move through reviewed updates without stacking every full change record down the page. The detail panel contains:
 
 1. Company, product, therapeutic area, and reviewed synthetic-data label.
 2. A "Before" and "Now" comparison.
@@ -85,6 +85,8 @@ The detail view contains:
 5. Four specialist cards.
 6. The governed Doctor Connect action.
 7. Review date, version history, and limitations.
+
+The specialist count is derived from the eligible profiles actually returned by the governed directory. The fixture and acceptance target remains exactly four.
 
 The active product UI does not expose an internal client data-scope editor as Ledger. Policy and audit remain shared Relay foundation capabilities.
 

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { ArrowRight, BookOpen, ChevronRight, CircleHelp, Info, Network, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { mirrorClasses } from "@relay/demo-seed";
+import { mirrorClassesByPersona } from "@relay/demo-seed";
 import { computeCohortComparison } from "@relay/practice-mirror";
 import { readMirrorDataset } from "@relay/relay-core";
 import { useDemo } from "../demo-context";
@@ -9,9 +9,10 @@ import { DemoNotice, PageHeading, ProvenanceBadge } from "../components/ui";
 
 export function MirrorPage() {
   const navigate = useNavigate();
-  const { record } = useDemo();
+  const { persona, record } = useDemo();
   const [selectedId, setSelectedId] = useState("sglt2");
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const mirrorClasses = mirrorClassesByPersona[persona.id] ?? mirrorClassesByPersona["hcp-maya"];
   const selected = mirrorClasses.find((item) => item.id === selectedId) ?? mirrorClasses[0];
   const mirrorRead = useMemo(() => readMirrorDataset(), []);
   const computed = useMemo(() => computeCohortComparison({ subject: mirrorRead.data[0], records: mirrorRead.data }), [mirrorRead]);
@@ -65,7 +66,7 @@ export function MirrorPage() {
           </div>
           <div className="neutral-insight"><BookOpen size={19} /><p>Your reported share is {selected.subject < selected.median ? "lower" : "higher"} than the peer median. That difference is not automatically good or bad.</p></div>
           <div className="comparison-meta">
-            <div><span>Cohort</span><strong>Endocrinology · Georgia</strong></div>
+            <div><span>Cohort</span><strong>{persona.subtitle.split(" · ")[0]} · Georgia</strong></div>
             <div><span>Eligible peers</span><strong>{cohortSize} physicians</strong></div>
             <div><span>Metric</span><strong>Share of configured basket</strong></div>
           </div>
@@ -77,7 +78,7 @@ export function MirrorPage() {
         <aside className="detail-drawer" role="dialog" aria-modal="true" aria-labelledby="calculation-title" onClick={(event) => event.stopPropagation()}>
           <button className="icon-button close" onClick={() => setDetailsOpen(false)} aria-label="Close details"><X /></button>
           <div className="eyebrow">Calculation details</div><h2 id="calculation-title">Why this comparison</h2>
-          <div className="detail-section"><h3>Cohort definition</h3><dl><div><dt>Specialty</dt><dd>Endocrinology</dd></div><div><dt>Geography</dt><dd>Georgia</dd></div><div><dt>Data year</dt><dd>2024</dd></div><div><dt>Minimum activity</dt><dd>150 eligible claims</dd></div><div><dt>Minimum cohort</dt><dd>11 physicians · Relay demo rule</dd></div></dl></div>
+          <div className="detail-section"><h3>Cohort definition</h3><dl><div><dt>Specialty</dt><dd>{persona.subtitle.split(" · ")[0]}</dd></div><div><dt>Geography</dt><dd>Georgia</dd></div><div><dt>Data year</dt><dd>2024</dd></div><div><dt>Minimum activity</dt><dd>150 eligible claims</dd></div><div><dt>Minimum cohort</dt><dd>11 physicians · Relay demo rule</dd></div></dl></div>
           <div className="detail-section"><h3>Included sources</h3><div className="badge-row"><ProvenanceBadge tone="blue">Public registry</ProvenanceBadge><ProvenanceBadge>Aggregate benchmark</ProvenanceBadge><ProvenanceBadge tone="gray">Synthetic demo data</ProvenanceBadge></div></div>
           <div className="detail-section"><h3>Not included</h3><ul className="plain-list"><li>Diagnosis or indication</li><li>Contraindications or clinical outcomes</li><li>Patients outside Medicare Part D</li><li>A complete practice denominator</li></ul></div>
           <div className="drawer-disclaimer">This comparison supports reflection. Relay has not determined whether a therapy is appropriate for any patient.</div>

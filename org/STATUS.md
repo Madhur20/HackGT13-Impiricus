@@ -7,9 +7,9 @@ Last updated: 2026-09-26.
 - **Stage:** Functional browser-first hackathon prototype.
 - **Repository contents:** Product/system plans, maintained context, contribution guidance, module boundaries, and a TypeScript workspace.
 - **Application code:** React/Vite web shell with Home, Practice Mirror, Doctor Connect, physician-facing Ledger Updates, and a shared Audit view.
-- **Tests:** Ten deterministic tests across cohort comparison, matching, policy, data-broker, update filtering, and semantic-diff behavior.
-- **Demo readiness:** Core click paths work from synthetic seed data and the production bundle builds. The simplified physician screens pass headless Chrome desktop review; hands-on mobile interaction QA remains open.
-- **Data:** Thirty-six synthetic HCP profiles, prescribing fixtures, three reviewed-update fixtures, client-scope fields, consent failure cases, and a fictional versioned policy.
+- **Tests:** Eleven deterministic tests across cohort comparison, matching, policy, data-broker, update filtering/personalization, specialist eligibility, and legacy schema-diff behavior.
+- **Demo readiness:** Core click paths work from synthetic seed data and the production bundle builds. The shared shell and Updates page pass headless Chrome desktop review; narrow-width capture informed mobile overflow defenses, while hands-on mobile interaction QA remains open.
+- **Data:** Thirty-six synthetic HCP profiles, prescribing fixtures, three reviewed medicine-update fixtures, consent failure cases, and a fictional versioned policy. Unused legacy client-scope fixtures remain technical cleanup.
 - **Deployment:** Local Vite build only; no hosted deployment or backend is configured.
 
 Plans remain broader than the prototype. Do not infer production integrations, legal approval, real credentialing, or durable storage from the working UI.
@@ -19,7 +19,7 @@ Plans remain broader than the prototype. Do not infer production integrations, l
 Harden the working prototype for the hackathon demo:
 
 1. Perform hands-on responsive QA in Chrome and on a phone-sized device.
-2. Add browser-level tests for the Mirror → Connect handoff, consent revocation, double-consent contact reveal, and Ledger blocked-to-review path.
+2. Add browser-level tests for the Mirror → Connect handoff, consent revocation, double-consent contact reveal, and Updates → Connect handoff.
 3. Add a deterministic demo reset for page-local state, not only persona and audit state.
 4. Decide whether the hackathon needs a minimal API/persistence layer or should remain an intentionally local prototype.
 5. Prepare deployment and a concise scripted demo run.
@@ -27,13 +27,13 @@ Harden the working prototype for the hackathon demo:
 ## Required early fixtures
 
 - 30–50 synthetic HCP profiles.
-- A second synthetic client contract.
-- Versioned policy fixtures, including an undersized Mirror cohort, a revoked Connect candidate, an unverified candidate, and a blocked Ledger proposal.
+- Three reviewed, fictional product updates with concrete previous/current versions and four specialist references each.
+- Versioned policy fixtures, including an undersized Mirror cohort, a revoked Connect candidate, an unverified candidate, and an update-review rule.
 - Offline deterministic explanation templates.
 
 ## Known blockers and external decisions
 
-No code-level blocker is recorded yet. Production behavior remains blocked on Impiricus review of credentialing, pharmacovigilance, brands versus classes, paid participation, permitted interaction-derived features, real jurisdiction rules, and contract retention/export requirements. These questions do not block the synthetic hackathon prototype when it labels assumptions clearly.
+No code-level blocker is recorded. Production behavior remains blocked on Impiricus review of credentialing, editorial source verification, pharmacovigilance, brands versus classes, paid participation, permitted interaction-derived features, real jurisdiction rules, and reviewed-update retention/export requirements. These questions do not block the synthetic hackathon prototype when it labels assumptions clearly.
 
 ## Definition of the next milestone
 
@@ -45,6 +45,20 @@ The next demo-hardening milestone is complete when:
 - the team has made and recorded the local-only versus hosted-demo decision.
 
 ## Iteration log
+
+### 2026-09-26 — Readability, focused Updates, and persona data
+
+- **Changed:** Repaired the Doctor Connect step connector, increased Connect and Mirror typography, strengthened Mirror class-control and homepage eyebrow contrast, replaced the stacked Updates feed with a left selector and focused right-side panel with previous/next controls, restored four eligible specialist cards with a derived count, and made both HCP personas use distinct Mirror, Connect, and Updates fixtures.
+- **Verified:** `npm run check` passes TypeScript validation, eleven tests, and the production build. Headless Chrome renders of Connect, Mirror, and the full Updates page were reviewed at 1440px; the step line clears its labels and the specialist row shows four cards.
+- **Open:** Hands-on touch QA and browser interaction automation remain open.
+- **Next:** Add browser tests for persona switching and previous/next update navigation.
+
+### 2026-09-26 — DocUpdate-compatible editorial redesign
+
+- **Changed:** Rebuilt the shared shell as a floating white physician-product header and redesigned Updates around the supplied DocUpdate references: pale blue canvas, editorial serif hierarchy, violet pill actions, an article-style update feed, focused before/after story, and a four-person specialist gallery. Corrected the primary system plan and maintained context so the old internal Ledger concept is no longer described as current.
+- **Verified:** `npm run check` passes TypeScript validation, ten tests, and the production build. Headless Chrome desktop and narrow-width captures were reviewed; mobile heading wrapping and overflow defenses were corrected.
+- **Open:** Hands-on touch QA, browser interaction automation, real editorial assets, and replacement of unused legacy schema-diff scaffolding remain open.
+- **Next:** Add an end-to-end Updates selection and Doctor Connect handoff test, then exercise the complete demo on a physical phone.
 
 ### 2026-09-26 — HCP Ledger Updates view
 
