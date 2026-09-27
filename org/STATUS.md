@@ -7,7 +7,7 @@ Last updated: 2026-09-26.
 - **Stage:** Functional browser-first hackathon prototype.
 - **Repository contents:** Product/system plans, maintained context, contribution guidance, module boundaries, and a TypeScript workspace.
 - **Application code:** React/Vite web shell with Home, Practice Mirror, Doctor Connect, physician-facing Ledger Updates, and a shared Audit view.
-- **Tests:** Eighteen deterministic tests across cohort comparison, matching, policy, data-broker, update filtering, semantic-diff, and peer domain clustering/discovery behavior.
+- **Tests:** Twenty-three deterministic tests across cohort comparison, matching, policy, data-broker, update filtering, semantic-diff, peer domain clustering/discovery, and Network Graph expertise/trust matching and learning behavior.
 - **Demo readiness:** Core click paths work from synthetic seed data and the production bundle builds. The simplified physician screens pass headless Chrome desktop review; hands-on mobile interaction QA remains open.
 - **Data:** Thirty-six synthetic HCP profiles, prescribing fixtures, three reviewed-update fixtures, client-scope fields, consent failure cases, and a fictional versioned policy.
 - **Deployment:** Local Vite build only; no hosted deployment or backend is configured.
@@ -45,6 +45,13 @@ The next demo-hardening milestone is complete when:
 - the team has made and recorded the local-only versus hosted-demo decision.
 
 ## Iteration log
+
+### 2026-09-26 — Relay Network Graph documented and backend logic added
+
+- **Changed:** Added the Network Graph as the learning matching substrate for Doctor Connect. Wrote `docs/network-graph-plan.md`; updated `org/CONTEXT.md` (new section, derived profile, computations, collections, scope, acceptance criteria), `org/DECISIONS.md` (accepted decision), `org/README.md` (source list), and `docs/doctor-connect-plan.md` (forward reference). Added domain types (expertise tags/edges, help profiles, trust edges, need, match/funnel/result) and a new `@relay/network-graph` feature implementing evidence-combined expertise strength, a deterministic hard-filter-then-rank matching funnel, trust aggregation with saturation, and `recordConnectionOutcome` for the learning loop.
+- **Verified:** `npm run check` passes TypeScript validation, 23 tests (5 new), and the production build. Tests cover evidence combination, funnel filter order, honest no-match, trust-edge creation/reinforcement/averaging, and the flywheel (positive feedback raises a peer's match score).
+- **Open:** Not yet wired to synthetic seed data, the data broker, the UI, or audit events; no Gemini intent extraction (structured categorical need only). The feature is exercised by its own tests but is not yet typechecked by `tsc -b` because no app imports it.
+- **Next:** Generate synthetic Network Graph data (expertise tags/edges, help profiles, seed trust edges), add governed broker reads, and validate the matching + learning logic on that data; then wire the Doctor Connect UI and audit events.
 
 ### 2026-09-26 — Peer domain discovery wired into Practice Mirror (step 2)
 

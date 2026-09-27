@@ -16,6 +16,7 @@ The `org/` directory is the maintained context layer for contributors and AI too
 - `docs/relay-system-plan.md`: primary integrated plan and highest-authority project document.
 - `docs/practice-mirror-plan.md`: detailed Practice Mirror behavior, cohort logic, language restrictions, and tests.
 - `docs/doctor-connect-plan.md`: detailed taxonomy, matching, consent state machine, safety controls, and tests.
+- `docs/network-graph-plan.md`: expertise and trust graph model, learning loop, matching funnel, safety boundaries, and tests for the Doctor Connect matching substrate.
 - `docs/ledger-plan.md`: detailed governed catalog, semantic diff, review workflow, versioning, and tests.
 - `docs/relay-pitch.md` and `docs/relay-pitch.pptx`: older narrative and deck, now using the Relay name. They are useful for the origin and judging story, but later plans supersede several technical and safety claims.
 - `docs/Claude interactions/`: excluded historical transcripts. They are not required reading and are not authoritative.

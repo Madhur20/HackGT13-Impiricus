@@ -203,3 +203,79 @@ export type SimilarPrescriberSuggestion = {
   similarity: number;
   reasons: string[];
 };
+
+// --- Relay Network Graph (expertise + trust matching substrate) ---
+// Models physicians as a graph of expertise ("who knows what") and validated
+// peer help ("who has successfully helped whom") to route an isolated physician
+// to the right peer. It backs Doctor Connect matching, reuses the shared consent
+// and policy foundation, and stores no patient data. See docs/network-graph-plan.md.
+
+export type ExpertiseSource = "SELF_DECLARED" | "SPECIALTY" | "PUBLICATION" | "IMPIRICUS_SIGNAL" | "SYNTHETIC";
+
+export type ExpertiseTagKind = "specialty" | "condition" | "drug_class" | "topic" | "skill" | "affiliation";
+
+export type ExpertiseTag = {
+  id: string;
+  label: string;
+  kind: ExpertiseTagKind;
+};
+
+export type ExpertiseEdge = {
+  hcpId: string;
+  tagId: string;
+  sources: ExpertiseSource[];
+  // Derived from sources when omitted; combines evidence and caps at 1.
+  strength?: number;
+};
+
+export type HelpMode = "async_question" | "short_call" | "referral_guidance";
+
+export type PeerHelpProfile = {
+  hcpId: string;
+  offeredTagIds: string[];
+  helpModes: HelpMode[];
+  peerSupportOptIn: boolean;
+};
+
+export type TrustEdge = {
+  fromHcpId: string;
+  toHcpId: string;
+  tagId: string;
+  interactions: number;
+  successfulConnections: number;
+  usefulnessScore: number; // 0-1 running average
+  lastConnectedAt: string;
+};
+
+export type ConnectionOutcome = {
+  useful: "yes" | "somewhat" | "no";
+  resolution: "resolved" | "referral_needed" | "need_another_expert";
+};
+
+export type PeerNeed = {
+  specialty?: string;
+  expertiseTagIds: string[];
+  helpMode?: HelpMode;
+};
+
+export type NetworkMatch = {
+  profile: HcpProfile;
+  score: number;
+  expertiseScore: number;
+  trustScore: number;
+  trustConnections: number;
+  matchedTags: { tagId: string; label: string }[];
+  reasons: string[];
+};
+
+export type MatchFunnelStep = {
+  label: string;
+  count: number;
+};
+
+export type NetworkMatchResult = {
+  need: PeerNeed;
+  matches: NetworkMatch[];
+  funnel: MatchFunnelStep[];
+  noMatch: boolean;
+};

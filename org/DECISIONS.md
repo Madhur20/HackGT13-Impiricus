@@ -4,6 +4,14 @@ This file records durable decisions. New entries should include a date, status, 
 
 ## Accepted baseline decisions
 
+### 2026-09-26 — Relay Network Graph is the learning matching substrate for Doctor Connect
+
+- **Status:** Accepted
+- **Decision:** Add an expertise graph and a trust graph as a distinct computation (`@relay/network-graph`) that backs Doctor Connect peer matching. Expertise edges carry evidence sources (`SELF_DECLARED`, `SPECIALTY`, `PUBLICATION`, `IMPIRICUS_SIGNAL`, `SYNTHETIC`) and a derived strength; trust edges are created and reinforced only from post-connection feedback. Matching is a deterministic funnel (specialty → expertise floor → peer-support opt-in/help mode → verified + matching consent + availability → expertise/trust ranking → best match or honest no-match), and the graph improves as connections are validated.
+- **Reason:** Isolated community, rural, and independent physicians need routing to the right peer, not a flat directory. A learning expertise/trust graph is a durable, defensible matching advantage while reusing consent, policy, provenance, and audit.
+- **Boundaries:** Expertise evidence and validated trust drive ranking — never prescribing volume or NPI alone; hard filters precede ranking; zero patient data and no off-platform content in trust or feedback; structured categorical intent only in the hackathon, with any future Gemini intent extraction requiring a deterministic fallback and holding no eligibility or final-peer authority; NPI is identity, not credentialing.
+- **Affected:** `packages/domain`, new `features/network-graph`, `docs/network-graph-plan.md`, `org/` context/decisions/status, and future `demo-seed` data, data-broker reads, Doctor Connect UI, and audit events.
+
 ### 2026-09-26 — Peer domain clustering is a deterministic, descriptive computation
 
 - **Status:** Accepted
