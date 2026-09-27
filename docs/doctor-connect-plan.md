@@ -41,9 +41,11 @@ The correct claim is **risk reduction through data minimization and controlled v
 - Reusable-answer search before creating a live request.
 - Eligibility filtering and ranked peer matches.
 - “Why this match” explanation with provenance.
-- Request, accept/decline, and a fully structured response with no free text in the hackathon version.
+- Separate requester and recipient Inbox surfaces.
+- Request delivery between signed-in synthetic accounts, accept/decline, and a fully structured response with no free text in the hackathon version.
 - Mutual-consent contact reveal.
 - One safety stop state.
+- Browser-local account sign-in and profile-matched sign-up for the prototype.
 
 ### Exclude
 
@@ -122,6 +124,14 @@ Every transition writes an audit event. Contact information is returned only fro
 
 For the hackathon, step 9 uses structured fields only. Keep the optional note as a post-hackathon experiment, not a partially secured demo feature.
 
+### Implemented browser preview boundary
+
+The requester creates a consult in Doctor Connect using the existing hard-filter-first Network Graph and deterministic UCB contextual-bandit ranking. The selected physician receives the structured request only in their signed-in `/inbox`, where they can accept or decline it, submit a controlled response, and independently approve email disclosure. Returning requesters are restored to an answered request and see an unread notification.
+
+The active physician comes from a browser-local account session tied to a stable synthetic HCP ID. Sign-up uses NPI only to match an existing eligible profile; it does not establish credential verification. Consult snapshots retain the physicians' stable IDs, display names, specialties, location/state, and synthetic verification status, but do not copy hidden email addresses into the request. Email is resolved from the account directory only after the deterministic contact policy confirms both approvals.
+
+`localStorage` and `BroadcastChannel` provide same-browser persistence and cross-tab updates for the hackathon. This is not production authentication, authorization, persistence, or transport. A deployment requires protected server sessions, authenticated APIs, durable storage, server-enforced transitions and consent checks, and a realtime channel.
+
 ## 7. Reusable answer library
 
 Reusable answers are a secondary extension rather than a required step in the physician's primary hackathon flow. When implemented, search prior answers before creating new work and store only answers whose author explicitly permits reuse.
@@ -176,6 +186,10 @@ All values are normalized to 0–1. The exact weights are prototype assumptions 
 Before ranking, require a minimum evidence floor for the selected therapeutic area. Evidence can come from reviewed self-declaration, verified specialty experience, or permitted Impiricus signals. If nobody clears the floor, return “No strong match available” instead of lowering the threshold. A visibly honest no-match state is better for trust than a forced weak match.
 
 Do not use prescribing volume alone as proof of expertise. Public claims are incomplete, may be suppressed, and may reflect factors unrelated to competence. Prefer HCP-declared experience, verified specialty, and consented Impiricus signals. If a public statistic contributes, disclose it and cap its weight.
+
+### Network Graph matching substrate
+
+The categorical weighted score above is the baseline matcher. Relay is also building a learning matching substrate — the Relay Network Graph — that models physicians as an expertise graph ("who knows what") and a trust graph ("who has successfully helped whom") and improves as connections are validated. It uses the same hard-filters-before-ranking rule, consent model, and audit foundation described here, and ranks on expertise evidence and validated peer trust rather than prescribing volume or NPI alone. See `network-graph-plan.md` for the model, funnel, learning loop, and boundaries.
 
 ### Explanation
 

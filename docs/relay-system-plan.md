@@ -2,19 +2,19 @@
 
 ## 1. Product thesis
 
-Relay is a consent-aware decision layer for Impiricus. It supports three experiences:
+Relay is a consent-aware physician decision layer designed to fit naturally within the Impiricus product family. It supports three experiences:
 
 1. **Practice Mirror** gives an HCP a descriptive view of their public prescribing pattern compared with a carefully defined peer cohort.
-2. **Doctor Connect** assembles a structured clinical-practice question and routes it to an eligible, opted-in peer.
-3. **Ledger** helps Impiricus staff review and approve changes to the data fields a pharma client may receive.
+2. **Doctor Connect** assembles a structured, general clinical-practice question and routes it to an eligible, opted-in peer.
+3. **Ledger**, presented to physicians as **Updates**, shows reviewed before/after pharma and drug-product changes and offers four eligible specialists for a governed discussion.
 
-The products should not claim to run the same mathematical algorithm. Benchmarking, peer ranking, and schema comparison are different computations. Their legitimate shared foundation is the policy pipeline around those computations:
+The products share a policy pipeline, not one mathematical algorithm:
 
 ```text
 authenticated actor + declared purpose
                     |
                     v
-eligible data and candidates
+eligible data, updates, or candidates
                     |
                     v
 deterministic consent and policy checks
@@ -26,33 +26,34 @@ product-specific computation
 grounded explanation + provenance labels
                     |
                     v
-immutable audit event
+append-only audit event
 ```
 
-This framing preserves the original “one engine, three products” story without overstating technical reuse.
+Mirror cohort comparison, Connect peer ranking, and Ledger reviewed-version comparison remain separate computations.
 
 ## 2. Hackathon objective
 
-The hackathon build should prove four things:
+The build should prove that:
 
-- Relay produces direct value for an HCP.
-- Consent changes what the system can compute and display.
-- Explanations come from structured evidence rather than model invention.
-- The same policy and provenance infrastructure supports an internal commercial workflow.
+- Relay creates direct, understandable value for a physician.
+- Consent changes what the system can compute, display, and disclose.
+- Explanations are grounded in structured evidence rather than model invention.
+- A reviewed medicine update can move cleanly into a governed peer discussion.
+- The experience looks and feels compatible with the existing Impiricus/DocUpdate product environment.
 
-The submission is a prototype, not a clinical decision-support system or a production compliance system. Use synthetic profiles and agreements in the demo. If public CMS records are included, label them as public historical data and do not portray them as complete practice data or a measure of care quality.
+The submission is a synthetic prototype, not a clinical decision-support system. If public CMS records are included, label them as historical public data and never portray them as a complete practice record or measure of care quality.
 
 ## 3. Scope and priority
 
 | Priority | Product | Required proof |
 |---|---|---|
-| P0 | Shared foundation | Login persona, consent/purpose evaluation, provenance labels, audit events |
-| P0 | Doctor Connect | Structured question, eligible-peer ranking, explanation, request and acceptance flow |
-| P1 | Practice Mirror | One cohort comparison with coverage caveat and no quality claim |
-| P1 | Ledger | One proposed field addition, structured diff, deterministic flags, approval record |
-| P2 | Extensions | Reusable answer library, DocUpdate targeting, scheduled policy reevaluation |
+| P0 | Shared foundation | Persona switching with distinct physician fixtures, consent/purpose evaluation, provenance labels, data broker, and audit events |
+| P0 | Doctor Connect | Structured question, hard eligibility filters, transparent ranking, request/response, and mutual contact consent |
+| P1 | Practice Mirror | One defensible cohort comparison with visible limitations and no quality claim |
+| P1 | Ledger / Updates | Reviewed before/after product update, relevance reasons, four specialist options, and governed Connect handoff |
+| P2 | Extensions | Reusable answers, real notification ingestion, editorial publishing workflow, and scheduled policy re-evaluation |
 
-If time collapses, keep one polished Doctor Connect path and one compact screen each for Mirror and Ledger. Do not weaken the core path to implement secondary dashboards.
+If time collapses, preserve one polished Doctor Connect path plus one compact, working Mirror and Updates path.
 
 ## 4. Product boundaries
 
@@ -60,106 +61,84 @@ If time collapses, keep one polished Doctor Connect path and one compact screen 
 
 - Describe public prescribing data and peer-cohort differences.
 - Match an opted-in HCP to another opted-in HCP using permitted profile attributes.
-- Assemble a question from a governed taxonomy.
-- Record a structured peer response.
-- Compare versions of a data-sharing schema.
-- Explain which structured facts and rules produced a result.
+- Assemble a question from a governed taxonomy and record a structured peer response.
+- Show reviewed facts about what changed between two versions of a synthetic medicine product.
+- Explain why an update or peer appeared using only approved structured inputs.
+- Hand a reviewed update into Doctor Connect using only an approved therapeutic area and discussion topic.
 
 ### Relay must not claim to do
 
-- Determine guideline adherence from Part D prescribing counts alone.
-- Infer patient diagnoses, outcomes, eligibility, or treatment appropriateness.
-- Verify licensure from an NPI alone. CMS states that NPI issuance does not establish licensure or credentials.
-- Guarantee that categorical inputs eliminate all privacy risk.
-- Provide legal conclusions or let an LLM approve a data-sharing change.
-- Claim that an off-platform handoff automatically removes Impiricus liability.
+- Determine guideline adherence, care quality, diagnosis, indication, or treatment appropriateness from Part D data.
+- Recommend a prescription, dose, therapy switch, or patient-specific treatment change.
+- Infer patient eligibility or clinical need from physician history.
+- Verify licensure from an NPI alone.
+- Guarantee that categorical inputs remove all privacy risk.
+- Let an LLM authorize access, invent a product change, or select an ineligible peer.
+- Claim that an off-platform handoff removes Impiricus responsibilities.
 
-Those distinctions should appear in the engineering docs and be reflected in visible product copy where relevant.
+Ledger is not a client-contract editor, data-scope approval tool, or internal compliance console.
 
 ## 5. Shared domain model
 
-The original two-state consent flag is too coarse. Model data, permission, and purpose separately.
-
 ### HCP profile
+
+An HCP profile separates public identity, physician-declared interests, permitted derived features, and verification. Prototype credential status is synthetic; NPI matching does not establish licensure.
 
 ```ts
 type HcpProfile = {
   id: string;
-  npi: string;
-  publicProfile: {
-    displayName: string;
-    taxonomyCodes: string[];
-    specialtyLabel: string;
-    state: string;
-  };
-  declaredProfile: {
-    therapeuticAreas: string[];
-    experienceTags: string[];
-    languages: string[];
-    availability: "available" | "limited" | "unavailable";
-  };
-  derivedProfile: {
-    engagementTags: string[];
-    prescribingClassStats: PrescribingClassStat[];
-  };
-  verification: {
-    npiMatched: boolean;
-    credentialStatus: "unverified" | "verified" | "expired";
-    checkedAt?: string;
-  };
+  displayName: string;
+  specialty: string;
+  state: string;
+  therapeuticAreas: string[];
+  topics: string[];
+  availability: "available" | "limited" | "unavailable";
+  verified: boolean;
+  matchingConsent: boolean;
+  contactConsent: boolean;
 };
 ```
 
-For the prototype, `credentialStatus` is synthetic. Production would require a trusted credentialing source beyond NPPES.
+### Field provenance
 
-### Field-level provenance
-
-```ts
-type DataField = {
-  path: string;
-  source: "NPPES" | "CMS_PART_D" | "HCP_DECLARED" | "IMPIRICUS_INTERACTION" | "SYNTHETIC";
-  classification: "public" | "declared" | "derived" | "restricted";
-  granularity: "individual" | "cohort" | "aggregate";
-  collectedAt: string;
-  permittedPurposes: Purpose[];
-  retentionUntil?: string;
-};
-```
+Each usable field records its source, classification, granularity, collection time, and permitted purposes. Recommended interface labels are **Public registry**, **Physician provided**, **Permitted for matching**, **Aggregate benchmark**, and **Synthetic demo data**.
 
 ### Consent grant
 
+Keep these purposes distinct:
+
+- `SELF_INSIGHT`
+- `PEER_MATCHING`
+- `PEER_CONTACT`
+- `AGGREGATE_ANALYTICS`
+
+Self-view, aggregate contribution, peer discovery, and contact disclosure are never one permission.
+
+### Reviewed product change
+
 ```ts
-type ConsentGrant = {
-  hcpId: string;
-  purpose: "SELF_INSIGHT" | "PEER_MATCHING" | "PEER_CONTACT" | "AGGREGATE_ANALYTICS";
-  dataCategories: string[];
-  audience: "SELF" | "OPTED_IN_HCPS" | "IMPIRICUS_STAFF" | "CLIENT_AGGREGATE";
-  status: "active" | "revoked" | "expired";
-  effectiveAt: string;
-  expiresAt?: string;
-  policyVersion: string;
+type ReviewedProductChange = {
+  id: string;
+  companyName: string;
+  productName: string;
+  therapeuticArea: string;
+  previousVersion: string;
+  currentVersion: string;
+  changeSummary: string;
+  publishedAt: string;
+  audienceSpecialties: string[];
+  relevanceReasons: string[];
+  suggestedTopics: string[];
+  specialistIds: string[];
+  provenance: Provenance[];
 };
 ```
 
-Do not use “anonymized and opted-in” as one badge. Those concepts answer different questions. Recommended UI labels are **Public registry**, **Physician provided**, **Permitted for matching**, **Aggregate benchmark**, and **Synthetic demo data**.
-
-### Client data contract
-
-```ts
-type ClientDataContractVersion = {
-  clientId: string;
-  version: number;
-  status: "draft" | "in_review" | "approved" | "rejected" | "superseded";
-  allowedFields: AllowedField[];
-  effectiveAt?: string;
-  createdBy: string;
-  previousVersionId?: string;
-};
-```
+The prototype uses fictional companies, products, components, and dates.
 
 ## 6. Shared policy service
 
-Every product calls one deterministic policy function before using a field or revealing an identity:
+Every product calls one deterministic policy function before using a field, revealing identity, or returning a reviewed update:
 
 ```ts
 evaluateAccess({ actor, subject, purpose, recipient, fields, jurisdiction, timestamp })
@@ -172,70 +151,69 @@ evaluateAccess({ actor, subject, purpose, recipient, fields, jurisdiction, times
      }
 ```
 
-Rules are versioned data, not scattered `if` statements. A rule includes an identifier, description, affected field classifications, applicable purpose and audience, effective dates, severity, and citation or internal policy reference.
+Rules are versioned configuration rather than scattered conditionals. Initial fictional rules include:
 
-For the hackathon, implement a small, clearly fictional rule set:
+- `CONSENT_MATCH_001`: peer identity requires active matching consent.
+- `CONSENT_CONTACT_002`: contact fields require active contact consent from both physicians.
+- `AGGREGATE_MIN_001`: a Mirror cohort must meet the configured minimum.
+- `STATE_DEMO_001`: one synthetic jurisdiction combination requires review.
+- `UPDATE_REVIEW_001`: Updates returns only reviewed, specialty-permitted product records.
 
-- `CONSENT_MATCH_001`: peer identity requires active peer-matching consent.
-- `CONSENT_CONTACT_002`: contact data requires both parties' active peer-contact consent.
-- `CLIENT_SCOPE_001`: a client cannot receive a field absent from its approved schema.
-- `AGGREGATE_MIN_001`: a displayed cohort must meet a configured minimum size.
-- `STATE_DEMO_001`: a synthetic demo jurisdiction sends one restricted field for manual review.
-
-Label jurisdiction examples as synthetic. Do not present them as legal advice.
+Jurisdiction examples are synthetic and are not legal advice.
 
 ## 7. System components
 
 ### Front end
 
-One responsive web app with role-based navigation:
+One responsive physician web application exposes Overview, Practice Mirror, Doctor Connect, a recipient Inbox, and Updates. In the hackathon build, a browser-local account session supplies the active synthetic HCP identity; changing physicians requires sign-out and sign-in. The same-browser request lifecycle synchronizes with `localStorage` and `BroadcastChannel`. Production must replace that preview boundary with server-side authentication, protected sessions, durable consult storage, server-side policy enforcement, and realtime delivery.
 
-- HCP role: Mirror and Connect.
-- Impiricus compliance role: Ledger.
-- Demo role switcher: switches seeded personas without real authentication.
+The presentation follows the supplied DocUpdate references:
 
-### Application API
+- floating white navigation on a pale blue canvas;
+- editorial serif display headings with a neutral sans-serif UI font;
+- restrained navy, violet, teal, white, and blue-gray palette;
+- generous spacing and few nested cards;
+- article-style update previews and a four-person specialist gallery;
+- purple pill actions and clear responsive layouts.
+
+Relay remains the product name. The design is implementation-compatible and reference-informed; it does not copy official source assets or make an official-brand claim.
+
+### Application modules
 
 - `profile-service`: reads HCP profile and field provenance.
-- `policy-service`: evaluates consent, field use, and reveal conditions.
+- `policy-service`: evaluates consent, purpose, and disclosure conditions.
 - `mirror-service`: builds cohorts and descriptive comparisons.
-- `connect-service`: constructs questions, ranks peers, manages request state.
-- `ledger-service`: versions schemas, computes semantic diffs, manages review.
-- `explanation-service`: converts approved structured facts into plain language.
+- `connect-service`: constructs questions, ranks peers, and manages request state.
+- `ledger-service`: returns reviewed product versions, relevance reasons, and governed specialist references.
+- `explanation-service`: phrases approved structured facts.
 - `audit-service`: records append-only product and policy events.
 
-These may live in one hackathon server with separate modules. The service boundaries are conceptual, not a reason to create microservices overnight.
+These boundaries may live in one hackathon server.
 
-### Verifiable shared code contract
-
-The transcripts correctly emphasize that judges should be able to verify the shared foundation in the repository. Implement an importable `relay-core` package with these interfaces:
+### Verifiable shared contract
 
 ```ts
-authorizeUse(input: AccessRequest): AccessDecision
-explainStructuredResult(input: ExplanationInput): ExplanationResult
-recordAuditEvent(input: AuditEventInput): AuditEvent
-renderProvenance(input: DataField[]): ProvenanceBadge[]
+authorizeUse(input): AccessDecision
+explainStructuredResult(input): ExplanationResult
+recordAuditEvent(input): AuditEvent
+renderProvenance(input): ProvenanceBadge[]
 ```
 
-All three products must call these functions. Keep the mathematical functions separate:
+Product computations remain separate:
 
 ```ts
 computeCohortComparison(...) // Practice Mirror
 rankEligiblePeers(...)       // Doctor Connect
-computeSchemaDiff(...)       // Ledger
+compareReviewedVersions(...) // Ledger / Updates
 ```
-
-This makes “one consent-aware engine” literally visible in code without pretending that a z-score, a cosine score, and a schema diff are the same algorithm.
 
 ### Data-access chokepoint
 
-Feature code must not query restricted profile or consent collections directly. A repository/data-broker layer accepts actor, purpose, subject, and requested fields, calls `authorizeUse`, and returns only allowed fields. Add a test that scans imports or mocks the repositories to prove each product uses the broker.
-
-For demo responsiveness, precompute cohort summaries and materialized peer-matching features when seed data loads. Cache derived features with a source timestamp and policy version; recompute them when source data or permission changes.
+Feature code must not query restricted profile or consent collections directly. A data broker accepts actor, purpose, subject, recipient, and requested fields, calls the policy service, and returns only allowed data.
 
 ### Data store
 
-MongoDB collections:
+Suggested production collections:
 
 - `hcp_profiles`
 - `field_provenance`
@@ -243,31 +221,15 @@ MongoDB collections:
 - `question_taxonomy`
 - `consult_requests`
 - `structured_answers`
-- `client_contract_versions`
+- `reviewed_product_changes`
 - `policy_rules`
 - `audit_events`
 
-Create indexes for NPI, specialty/state cohort lookup, active consent by HCP and purpose, consult status, and client/version.
+## 8. AI boundary
 
-### AI boundary
+Gemini may phrase approved structured comparisons, match reasons, and reviewed product changes. It may not authorize access, create dosage advice, infer missing clinical facts, invent a component or citation, bypass peer eligibility, or choose the final peer. Every generated explanation must have a deterministic offline fallback.
 
-Gemini may:
-
-- Turn structured differences into readable prose.
-- Summarize the structured reasons for a match.
-- Produce a concise description of a schema change.
-
-Gemini may not:
-
-- Decide whether access is lawful.
-- Create dosage recommendations.
-- Infer missing clinical facts.
-- Choose the final peer without deterministic eligibility checks.
-- invent a citation.
-
-Pass only approved structured facts into the prompt. Validate output against a JSON schema. Provide a deterministic template fallback so the demo still works if the model fails.
-
-## 8. Shared API surface
+## 9. API surface
 
 ```text
 GET  /api/me/profile
@@ -276,7 +238,7 @@ PUT  /api/me/consents/:purpose
 POST /api/policy/evaluate
 
 GET  /api/mirror/summary
-GET  /api/mirror/cohorts/:id
+GET  /api/mirror/comparisons/:drugClassId
 
 GET  /api/connect/taxonomy
 POST /api/connect/questions/preview
@@ -286,165 +248,103 @@ POST /api/connect/requests/:id/select
 POST /api/connect/requests/:id/respond
 POST /api/connect/requests/:id/contact-consent
 
-GET  /api/ledger/clients/:clientId/current
-POST /api/ledger/clients/:clientId/proposals
-GET  /api/ledger/proposals/:id/diff
-POST /api/ledger/proposals/:id/review
+GET  /api/updates
+GET  /api/updates/:updateId
+GET  /api/updates/:updateId/specialists
 ```
 
-Every response that shows derived information should include `provenance`, `policyVersion`, and `explanationInputs` fields.
+Derived responses include provenance, policy version, and explanation inputs.
 
-## 9. Audit model
+## 10. Audit, safety, and security
 
-An audit event records:
+Audit events record time, actor, action, internal subject IDs, purpose, policy version, rule hits, decision, and input hash. Do not record patient details, private Mirror values, or off-platform conversation content.
 
-```ts
-type AuditEvent = {
-  id: string;
-  occurredAt: string;
-  actorId: string;
-  action: string;
-  subjectIds: string[];
-  purpose: string;
-  policyVersion: string;
-  ruleHits: string[];
-  decision: "allow" | "deny" | "review";
-  inputHash: string;
-  previousEventHash?: string;
-};
-```
+Baseline controls:
 
-Do not record patient details or the content of off-platform conversations. The prototype may use a hash chain to demonstrate tamper evidence, but should describe it as tamper-evident rather than immutable.
+- synthetic profiles, companies, products, components, and jurisdictions only;
+- server-side role, validation, consent, and policy enforcement;
+- no file uploads, unbounded clinical text, patient narratives, or exact dose fields;
+- transport encryption, redacted logs, protected secrets, and rate limits in production;
+- report, block, moderation, suspension, pharmacovigilance, and product-complaint workflows on the production roadmap.
 
-Practice Mirror audit events should record that an authorized self-view occurred, not the values shown. Doctor Connect should log internal HCP IDs rather than NPIs wherever possible. Ledger may retain the structured before/after identifiers because those fields are the subject of the review.
-
-## 10. Safety and security baseline
-
-- Seed only synthetic HCPs and synthetic contracts.
-- Do not accept file uploads or unbounded clinical text.
-- Enforce role checks on the server, not only in the interface.
-- Encrypt transport and store secrets outside the repository.
-- Redact logs and use IDs rather than contact information.
-- Apply rate limits to contact requests.
-- Require verified HCP status before production peer discovery.
-- Add abuse reporting, blocking, and account suspension to the production backlog.
-- Route potential adverse-event or product-quality content to a defined pharmacovigilance workflow before any pharma-sponsored launch. FDA reporting obligations depend on role and program design, so legal and safety teams must define this process.
-
-## 11. Suggested repository structure
+## 11. Repository structure
 
 ```text
-apps/
-  web/
-  api/
-packages/
-  domain/
-  policy-engine/
-  explanations/
-  demo-seed/
-features/
-  practice-mirror/
-  doctor-connect/
-  ledger/
+apps/       delivery surfaces
+features/   Mirror, Connect, and Ledger computations/use cases
+packages/   shared domain, policy, broker, explanations, audit, and demo seed
+config/     governed taxonomies and rules
+tests/      cross-product and browser coverage
 ```
 
-Keep policy evaluation and provenance rendering in shared packages. Keep the three computations in their own feature modules.
+## 12. Build sequence
 
-## 12. Build sequence for the remaining hackathon time
+### Phase A: shared skeleton
 
-### Phase A: vertical skeleton
+- Seed synthetic HCP profiles, three reviewed product changes, and fictional policy rules.
+- Implement persona switching, floating navigation, provenance labels, data broker, and audit writer.
+- Create deterministic offline responses.
 
-- Seed 30–50 synthetic HCP profiles, two client contracts, and five policy rules. Include one undersized Mirror cohort, one revoked Connect candidate, and one blocked Ledger proposal.
-- Implement role switching, navigation, provenance badge, and audit-event writer.
-- Create deterministic mock responses for all three products.
+### Phase B: Doctor Connect
 
-### Phase B: Doctor Connect end to end
-
-- Build taxonomy selections and question preview.
-- Filter candidates by verification, consent, availability, and conflicts.
-- Rank candidates and show the score explanation.
-- Implement request, acceptance, structured answer, and double-consent contact reveal.
+- Build governed selections and required general-question confirmation.
+- Apply hard filters before ranking.
+- Implement request, response, and mutual-consent contact reveal.
 
 ### Phase C: Practice Mirror
 
-- Load a small precomputed drug-class dataset.
-- Define one defensible cohort.
-- Show share, peer median, interquartile range, coverage caveat, and provenance.
+- Load a small precomputed class-level dataset.
+- Show share, median, interquartile range, cohort definition, coverage caveat, and provenance.
 
-### Phase D: Ledger
+### Phase D: Ledger / Updates
 
-- Create current and proposed contract versions.
-- Generate a field-level diff.
-- Evaluate two rules and save a reviewer decision.
+- Show three reviewed, fictional product changes in a left-side selector with one focused right-side detail panel and previous/next controls.
+- Display the selected before/after version, relevance reasons, and limitations.
+- Display exactly four eligible specialists without contact details.
+- Pass only approved topic context into Doctor Connect.
 
 ### Phase E: hardening
 
-- Add failure states and deterministic fallbacks.
-- Verify that revoking consent changes Connect results immediately.
-- Verify that a restricted field never appears in an explanation.
-- Rehearse from a clean database seed.
+- Add deterministic failure states and browser coverage.
+- Verify consent changes recompute Connect results.
+- Verify restricted facts never appear in explanations.
+- Rehearse a clean-clone, offline demo on desktop and phone-sized screens.
 
-### Four-person split for a ten-hour build window
+## 13. Demo script
 
-| Time | Engineer 1 | Engineer 2 | Engineer 3 | Engineer 4 |
-|---|---|---|---|---|
-| 0–2 h | Shared domain and access broker | Demo seed data | Shared shell and badges | Audit/policy fixtures |
-| 2–7 h | Practice Mirror | Doctor Connect | Ledger | Integrations and deterministic explanation fallback |
-| 7–8 h | Integration tests | Integration tests | Integration tests | Consent and audit timeline |
-| 8–9 h | Demo fixtures and failure states | Demo fixtures and failure states | Demo fixtures and failure states | Clean-seed rehearsal |
-| 9–10 h | Mirror polish | Connect polish | Ledger polish | End-to-end demo and backup recording |
-
-If the available time is shorter, finish Connect first, then one complete Mirror comparison, then one Ledger proposal. Shared infrastructure is useful only if it supports a working user path.
-
-## 13. Demo script for all three products
-
-The deck currently allocates 90 seconds. Use prepared data and no typing except the categorical selections.
-
-1. **0–10 seconds:** “Relay applies one consent and provenance layer to three confirmed Impiricus gaps.”
-2. **10–30 seconds, Mirror:** show a descriptive class-level difference and open its cohort/coverage disclosure.
-3. **30–60 seconds, Connect:** assemble a question, show only eligible peers, and reveal the match explanation. Trigger the mutual-contact request.
-4. **60–78 seconds, Ledger:** add a proposed field, show its diff and the rule that sends it to review.
-5. **78–90 seconds:** open the common audit timeline and show all three events with the same policy version.
-
-The audit timeline is the strongest proof that the products share infrastructure. Showing a raw `DoctorProfile` object is less persuasive to a product judge.
+1. **Overview:** introduce one physician workspace inside the Impiricus visual environment.
+2. **Mirror:** show a descriptive class-level difference and its limitations.
+3. **Updates:** select a reviewed product change, show before/after facts, and introduce four specialists.
+4. **Connect:** continue with the approved topic, confirm the question is general, and show only eligible peers.
+5. **Consent proof:** demonstrate that contact information remains hidden until mutual consent.
 
 ## 14. Acceptance criteria
 
 - A revoked matching consent removes that HCP from candidate results.
 - Contact details remain hidden until both HCPs approve.
-- No LLM output contains a fact absent from `explanationInputs`.
-- Mirror never uses “adherence,” “quality,” or “indicated patients.”
-- Ledger never labels an automated result “legally approved.”
-- Every displayed data point has a provenance label.
+- No generated explanation contains a fact absent from its structured input.
+- Mirror never makes an adherence, quality, indication, or treatment claim.
+- Updates shows concrete before/after facts, provenance, relevance reasons, and exactly four specialists.
+- The Updates handoff passes only an approved therapeutic area and discussion topic.
+- Updates never recommends changing a prescription or presents a patient-specific conclusion.
 - Every policy decision creates an audit event.
-- The demo works without network access through seeded explanations.
+- The demo works offline with seeded data and deterministic explanations.
+- Desktop and phone-sized core paths pass visual review.
 
-## 15. Decisions requiring Impiricus review after the hackathon
+## 15. Decisions requiring Impiricus review
 
-- Impiricus’s actual role and obligations if peer discussions relate to treatment.
-- Whether Doctor Connect may mention brands, classes only, or both.
+- Impiricus's actual role and obligations when peer discussions relate to treatment.
+- Whether production Updates may name brands or should use classes only.
+- Editorial source verification and publishing ownership for medicine changes.
 - Required adverse-event and product-complaint intake procedures.
-- The verified credentialing source and re-verification cadence.
+- The credentialing source and re-verification cadence.
 - Compensation, fair-market-value, and transparency rules if experts are paid.
-- Which interaction-derived fields may support individual matching.
-- Contract-specific retention, audit, and export requirements.
-- The jurisdictions and policies that the production rules engine must encode.
+- Which interaction-derived fields may support update relevance or peer matching.
+- The jurisdictions and policies the production rules engine must encode.
 
-## 16. Decisions from the expanded transcript review
+## 16. Reference notes
 
-| Transcript proposal | Decision | Reason |
-|---|---|---|
-| One importable shared module | Adopt | Makes shared consent, explanation, provenance, and audit behavior verifiable |
-| One universal diff/similarity function | Reject | The products perform different computations; forcing one abstraction creates misleading code |
-| Direct reads of public fields and one accessor for restricted fields | Refine | All product reads should use a data broker so purpose and recipient checks apply consistently |
-| Cached profile vector | Adopt with limits | Useful for demo speed, but cache only permitted, named features and invalidate on consent changes |
-| “No patient data ever” | Replace | Use “Relay does not request or need patient-level data in the demo”; absolute guarantees are not supportable |
-| Editable rules in Mongo | Adopt with controls | Rules should be versioned configuration, but edits require authorization and produce audit events |
-| Shared audit collection | Adopt | Provides the strongest visible evidence that all three products share governance infrastructure |
-| Synthetic data shaped like production schemas | Adopt | Delivers reliable demo behavior without implying production readiness or exposing real HCP data |
-
-## 17. Reference notes
-
-- CMS describes Part D provider-and-drug data as prescription fills and costs for Medicare Part D beneficiaries and warns that the data does not represent a physician’s full practice or establish care quality: <https://data.cms.gov/tools/medicare-part-d-prescriber-look-up-tool>
+- CMS describes Part D provider-and-drug data as prescription fills and costs for Medicare Part D beneficiaries and warns that the data does not represent a physician's full practice or establish care quality: <https://data.cms.gov/tools/medicare-part-d-prescriber-look-up-tool>
 - CMS states that NPI issuance does not validate licensure or credentials: <https://download.cms.gov/nppes/NPI_Files.html>
-- HHS explains that HIPAA de-identification uses Safe Harbor or Expert Determination and still does not reduce identification risk to zero: <https://www.hhs.gov/hipaa/for-professionals/special-topics/de-identification/index.html>
-- FDA’s 2026 safety-data guidance addresses newer sources such as social media and patient-support programs, which is why a pharma-linked consult product needs a defined safety escalation process: <https://www.fda.gov/regulatory-information/search-fda-guidance-documents/e2dr1-post-approval-safety-data-definitions-and-standards-management-and-reporting-individual-case>
+- HHS explains that HIPAA de-identification uses Safe Harbor or Expert Determination and does not reduce identification risk to zero: <https://www.hhs.gov/hipaa/for-professionals/special-topics/de-identification/index.html>
+- FDA safety-data guidance is one reason a pharma-linked peer workflow needs defined safety escalation and product-complaint handling: <https://www.fda.gov/regulatory-information/search-fda-guidance-documents/e2dr1-post-approval-safety-data-definitions-and-standards-management-and-reporting-individual-case>

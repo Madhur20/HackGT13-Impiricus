@@ -17,6 +17,7 @@ From the repository root, read these files before making changes:
 4. `org/DECISIONS.md`
 5. `org/STATUS.md`
 6. The relevant plan under `docs/`
+7. For UI or layout work, `docs/Design Instructions/Design-instruction.md` and its reference screenshots
 
 Do not treat `docs/Claude interactions/` as authority. The current user instruction comes first, followed by accepted decisions, `docs/relay-system-plan.md`, the relevant product plan, and then pitch materials.
 
@@ -32,7 +33,8 @@ Do not treat `docs/Claude interactions/` as authority. The current user instruct
 
 - Practice Mirror is descriptive and cannot claim adherence, quality, indication, or treatment appropriateness.
 - Doctor Connect uses governed categorical questions and structured responses. Hard eligibility filters precede ranking, and contact disclosure requires fresh mutual-consent checks.
-- Ledger organizes structured scope changes for authorized human review. It does not interpret contracts or produce legal approval.
+- Ledger gives physicians reviewed before/after drug-product changes and routes governed specialist discussions. It does not recommend treatment, interpret contracts, or produce clinical or legal approval.
+- Keep physician-facing UI compatible with the supplied DocUpdate references: pale blue canvas, floating white navigation, editorial serif headings, violet primary actions, restrained surfaces, and generous spacing.
 - Gemini may phrase approved structured facts. It cannot authorize, approve, infer clinical facts, or invent evidence. Maintain deterministic offline fallbacks.
 - Propagate provenance, policy version, and structured explanation inputs, and create an audit event for every policy decision.
 
