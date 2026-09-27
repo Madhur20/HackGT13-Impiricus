@@ -46,6 +46,13 @@ The next demo-hardening milestone is complete when:
 
 ## Iteration log
 
+### 2026-09-27 — Reconciled `logic` with `origin/GPT-POC` so the branches merge cleanly
+
+- **Changed:** Merged `origin/GPT-POC` (`3b5c171`, signup and re-design) onto the `logic` code (`543ada9`) in `cleaned_branch`. UI-only files (App, AppShell, ui, AuthPage, InboxPage, auth test, styles, Home/Updates copy) take GPT-POC. Doctor Connect keeps the Network Graph UCB matcher, funnel, and exploration chip, and adopts GPT-POC's presentation changes: no "Demo consent change" toggle and no "fictional" wording. Practice Mirror keeps peer-domain discovery with GPT-POC's copy, and its peer cards use the **Illustrative record** label. `data-broker`, `demo-seed`, `domain`, `relay-core`, and `consult-context` keep the `logic` versions, which already contain every GPT-POC change except the illustrative update wording now applied in `demo-seed`. Docs combine both sides.
+- **Verified:** `npm run check` passes TypeScript validation, 35 tests, and the production build.
+- **Open:** `main` still contains merge `ab47cfc`, which dropped `readClusteringDataset`/`readNetworkGraph` and breaks the app at runtime. Merge this branch into `main` and resolve its conflicts in favor of this branch.
+- **Next:** Fix `main` by merging this branch into it.
+
 ### 2026-09-26 — Ported the newer GPT-POC account and Inbox UI while preserving RL matching
 
 - **Changed:** Brought the newer `origin/GPT-POC` DocUpdate-style sign-in/sign-up, account-bound shell, Inbox, unread badges, consult delivery, structured answer, and mutual email-approval UI onto `logic`. Integrated that lifecycle into the existing Network Graph matcher rather than restoring the older fixed scorer: candidate eligibility, the five-stage funnel, deterministic UCB ranking, peer-fit scores, exploration metadata, and the live consent recomputation remain intact. Added account-aware candidate reads and synthetic graph evidence for the Maya/Jordan account profiles. Kept required synthetic-data labels that the divergent POC commit had removed.
@@ -66,6 +73,34 @@ The next demo-hardening milestone is complete when:
 - **Verified:** `npm run check` passes TypeScript validation, 29 tests, and the production build. Verified live in the in-IDE browser at `/connect`: funnel narrows 33 → 21 → 19 → 19 → 6, validated experts rank first with prior-outcome reasons, and unproven eligible peers surface with the exploration reason. The `Demo consent change` toggle still drops a candidate via the policy engine.
 - **Open:** Feedback capture in the UI does not yet write back into `trustEdges` (the flywheel is exercised in tests, not from the live UI); no policy toggle (UCB/Thompson) surfaced to users; matching is not filtered by a target specialty (ranks purely on expertise + trust across eligible peers).
 - **Next:** Persist post-connection feedback from the UI into the trust graph and reflect it in the audit timeline; optionally expose the funnel/exploration in the demo script.
+
+### 2026-09-26 — Reciprocal contact reveal and read-aware badges
+
+- **Changed:** Connected mutual contact approval to the physicians' actual account emails on both requester and recipient screens, kept email addresses out of consult request snapshots, added separate recipient/requester read timestamps, and changed Inbox and Doctor Connect badges to count only unread requests and unread answers for the active account.
+- **Verified:** `npm run check` passes TypeScript validation, fifteen tests, and the production build.
+- **Open:** Browser-level coverage for double-consent reveal, consent revocation, and multi-tab badge transitions remains open.
+- **Next:** Add an authenticated browser test covering Elena → Maya → Elena, reciprocal email reveal, and badge clearing.
+
+### 2026-09-26 — DocUpdate-style local sign-in and sign-up
+
+- **Changed:** Removed Auth0 and its environment configuration, added a responsive DocUpdate-inspired account entry screen, seeded separate Elena, Maya, and Jordan credentials, added NPI-matched sign-up, stored local passwords as SHA-256 hashes, and kept all product/inbox data bound to the signed-in account.
+- **Verified:** `npm run check` passes TypeScript validation, fourteen tests, and the production build. Credential tests accept Maya's correct password, reject an incorrect password, and confirm Maya and Elena map to different HCP IDs. The sign-in screen was reviewed in headless Chrome at 1440 × 1000 and matches the supplied pale-cyan, dotted, split-layout reference direction.
+- **Open:** Browser automation for form submission and the full Elena → Maya → Elena lifecycle remains open. The local credential store is not production authentication and must be replaced before deployment.
+- **Next:** Add browser-level coverage for sign-in, sign-up validation, account isolation, and the two-physician Doctor Connect flow.
+
+### 2026-09-26 — Account-bound HCP workflow and answer notification
+
+- **Changed:** Removed unauthenticated physician switching and URL inbox impersonation, required a valid Auth0 HCP claim for all product access, made Maya and Elena eligible directory accounts, added structured requester/recipient identity snapshots, filtered Inbox strictly by the signed-in account, persisted each requester's active consult, and added Inbox/answered navigation badges plus automatic restoration to the final answer step.
+- **Verified:** `npm run check` passes TypeScript validation, twelve tests, and the production build. The broker test confirms Elena can see Maya but not herself and Maya can see Elena but not herself.
+- **Open:** The team must configure the Auth0 tenant and two user accounts before hands-on authentication QA. Cross-browser or cross-device delivery still requires a protected shared backend rather than browser-local state.
+- **Next:** Configure Elena (`hcp-1`) and Maya (`hcp-maya`) in Auth0, run the full account-switch flow, then add browser automation for it.
+
+### 2026-09-26 — Two-sided Doctor Connect and Auth0 boundary
+
+- **Changed:** Removed demo framing from the physician UI, added a recipient Inbox with accept/decline, structured answering, and independent contact approval, synchronized consult state between same-browser tabs, and integrated the official Auth0 React provider behind environment configuration. Fictional medical/product facts now use the quieter **Illustrative record** provenance label.
+- **Verified:** `npm run check` passes TypeScript validation, eleven tests, and the production build.
+- **Open:** Auth0 tenant credentials and HCP claims must be configured by the team. Multi-device delivery still requires a protected API, durable database, server-side policy enforcement, and realtime infrastructure; browser interaction automation and hands-on responsive QA remain open.
+- **Next:** Configure the Auth0 SPA and two physician accounts, then implement or select the hosted request/realtime backend if the presentation must span separate devices.
 
 ### 2026-09-26 — Readability, focused Updates, and persona data
 

@@ -101,7 +101,7 @@ type HcpProfile = {
 
 ### Field provenance
 
-Each usable field records its source, classification, granularity, collection time, and permitted purposes. Recommended interface labels are **Public registry**, **Physician provided**, **Permitted for matching**, **Aggregate benchmark**, and **Synthetic demo data**.
+Each usable field records its source, classification, granularity, collection time, and permitted purposes. Recommended interface labels are **Public registry**, **Physician provided**, **Permitted for matching**, **Aggregate benchmark**, and **Illustrative record**. Fictional medical/product facts keep this provenance label even when the surrounding interface is presented as the embedded Relay product.
 
 ### Consent grant
 
@@ -165,7 +165,9 @@ Jurisdiction examples are synthetic and are not legal advice.
 
 ### Front end
 
-One responsive physician web application exposes Overview, Practice Mirror, Doctor Connect, a recipient Inbox, and Updates. In the hackathon build, a browser-local account session supplies the active synthetic HCP identity; changing physicians requires sign-out and sign-in. The same-browser request lifecycle synchronizes with `localStorage` and `BroadcastChannel`. Production must replace that preview boundary with server-side authentication, protected sessions, durable consult storage, server-side policy enforcement, and realtime delivery.
+One responsive physician web application exposes Overview, Practice Mirror, Doctor Connect, the recipient Inbox, and Updates. A browser-local account session supplies the HCP identity used throughout the hackathon build. The interface has no physician switcher or URL-based inbox impersonation. Production must replace local accounts with server-side authentication and protected sessions.
+
+The current request lifecycle synchronizes between same-browser tabs with `BroadcastChannel` and `localStorage`, allowing one tab to send while a second physician tab accepts and answers immediately. This is not the production transport. Multi-device deployment requires an authenticated API, durable request storage, server-side policy enforcement, and a realtime channel.
 
 The presentation follows the supplied DocUpdate references:
 

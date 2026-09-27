@@ -38,14 +38,13 @@ The correct claim is **risk reduction through data minimization and controlled v
 
 - Four-step categorical question builder.
 - Generated question preview.
-- Reusable-answer search before creating a live request.
 - Eligibility filtering and ranked peer matches.
 - “Why this match” explanation with provenance.
-- Separate requester and recipient Inbox surfaces.
-- Request delivery between signed-in synthetic accounts, accept/decline, and a fully structured response with no free text in the hackathon version.
+- Separate requester and recipient inbox surfaces.
+- Real request delivery between same-browser tabs, accept/decline, and a fully structured response with no free text in the hackathon version.
 - Mutual-consent contact reveal.
 - One safety stop state.
-- Browser-local account sign-in and profile-matched sign-up for the prototype.
+- Account-based sign-in and profile-matched sign-up.
 
 ### Exclude
 
@@ -124,13 +123,19 @@ Every transition writes an audit event. Contact information is returned only fro
 
 For the hackathon, step 9 uses structured fields only. Keep the optional note as a post-hackathon experiment, not a partially secured demo feature.
 
-### Implemented browser preview boundary
+### Implemented browser transport and authentication boundary
 
-The requester creates a consult in Doctor Connect using the existing hard-filter-first Network Graph and deterministic UCB contextual-bandit ranking. The selected physician receives the structured request only in their signed-in `/inbox`, where they can accept or decline it, submit a controlled response, and independently approve email disclosure. Returning requesters are restored to an answered request and see an unread notification.
+The requester creates the consult in Doctor Connect from peers ranked by the existing hard-filter-first Network Graph and deterministic UCB contextual-bandit matcher. The selected responder receives it in `/inbox`, where they can accept or decline, choose controlled response values, send the response, and independently approve email disclosure. The requester's screen updates as these actions occur.
 
-The active physician comes from a browser-local account session tied to a stable synthetic HCP ID. Sign-up uses NPI only to match an existing eligible profile; it does not establish credential verification. Consult snapshots retain the physicians' stable IDs, display names, specialties, location/state, and synthetic verification status, but do not copy hidden email addresses into the request. Email is resolved from the account directory only after the deterministic contact policy confirms both approvals.
+The hackathon build uses a browser-local account and session store. Sign-in binds the active physician to the account's stable HCP ID. Sign-up uses NPI only to match an existing eligible Relay profile; it does not treat NPI issuance as credential verification. The UI has no profile selector and `/inbox` always shows only requests addressed to the signed-in physician. Production must replace this local mechanism with server-side authentication, protected sessions, credential recovery, abuse controls, and appropriate credential-verification sources.
 
-`localStorage` and `BroadcastChannel` provide same-browser persistence and cross-tab updates for the hackathon. This is not production authentication, authorization, persistence, or transport. A deployment requires protected server sessions, authenticated APIs, durable storage, server-enforced transitions and consent checks, and a realtime channel.
+Every request stores structured identity snapshots for the requester and recipient: stable HCP ID, display name, specialty, location or state, and verified credential status. The inbox shows this professional identity separately from the governed question fields so the responder can clearly see who sent the request without exposing hidden contact information. Email addresses are resolved from the account directory only for the approved contact view; they are not copied into the request payload.
+
+The requester retains an account-specific pointer to the active consult. When the responder accepts, the requester sees the accepted status. When the responder submits an answer, Doctor Connect displays an answered notification and restores the requester directly to the final response step after their next authenticated session. Inbox and Doctor Connect navigation badges represent unread events for the signed-in physician: opening a received request marks it read for the recipient, and opening its completed answer marks it read for the requester.
+
+After an answer is sent, each physician independently approves email sharing. One approval leaves the contact value hidden on both sides. Once both approvals are active, the requester sees the responder's account email and the responder sees the requester's account email. Revoking either approval hides both values again.
+
+For the current browser build, `BroadcastChannel` plus `localStorage` provides deterministic same-origin, cross-tab updates. Production replaces this client-side transport with authenticated request APIs, durable storage, server-side transition and policy validation, and a realtime delivery service. Authentication alone does not provide request transport or authorization enforcement.
 
 ## 7. Reusable answer library
 
@@ -374,8 +379,9 @@ Demo sequence:
 3. Show a prior answer result, then request a live peer anyway.
 4. Open “Why this match.”
 5. Point out that the revoked-consent expert is absent.
-6. Simulate acceptance and a structured answer.
-7. Show that one contact approval keeps details hidden, while the second reveals the selected channel.
+6. Sign out, sign in as the selected physician, open that account's Inbox, accept the delivered request, and send a structured answer.
+7. Sign back in as the requester and open the answered notification, which restores the final response step.
+8. Show that one contact approval keeps details hidden, while the second reveals the selected channel.
 
 Recommended disclosure for the prototype:
 

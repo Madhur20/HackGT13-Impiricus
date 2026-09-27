@@ -7,7 +7,7 @@ import { computeCohortComparison } from "@relay/practice-mirror";
 import { clusterDoctorsByDomain, suggestDomainPeers, suggestSimilarPrescribers } from "@relay/peer-clustering";
 import { readClusteringDataset, readConnectCandidates, readMirrorDataset } from "@relay/relay-core";
 import { useDemo } from "../demo-context";
-import { DemoNotice, PageHeading, ProvenanceBadge } from "../components/ui";
+import { PageHeading, ProvenanceBadge } from "../components/ui";
 
 export function MirrorPage() {
   const navigate = useNavigate();
@@ -85,8 +85,6 @@ export function MirrorPage() {
   return (
     <div className="stack-lg">
       <PageHeading eyebrow="Practice Mirror" title="See how your prescribing mix compares" description="A private snapshot of public Medicare Part D data. It does not judge your care." action={<button className="button secondary" onClick={openDetails}><CircleHelp size={17} /> About this comparison</button>} />
-      <DemoNotice />
-
       <div className="mirror-layout">
         <section className="panel mirror-list-panel">
           <div className="panel-heading"><div><span>Choose a class</span><h2>Medication classes</h2></div><span className="year-chip">2024</span></div>
@@ -155,7 +153,7 @@ export function MirrorPage() {
                         <p>{peer.specialty} · {peer.state}</p>
                         <div className="match-score"><strong>{peer.metricValue}</strong><span>{peer.metricLabel}</span></div>
                         <ul>{peer.reasons.slice(0, 3).map((reason) => <li key={reason}><ChevronRight size={14} />{reason}</li>)}</ul>
-                        <div className="badge-row"><ProvenanceBadge tone="mint">Permitted for matching</ProvenanceBadge><ProvenanceBadge tone="gray">Synthetic demo data</ProvenanceBadge></div>
+                        <div className="badge-row"><ProvenanceBadge tone="mint">Permitted for matching</ProvenanceBadge><ProvenanceBadge tone="gray">Illustrative record</ProvenanceBadge></div>
                         <button className="button secondary wide" onClick={() => discussPeer(peer.name)}><Network size={15} /> Discuss via Doctor Connect</button>
                       </article>
                     ))}
@@ -168,8 +166,8 @@ export function MirrorPage() {
         <aside className="detail-drawer" role="dialog" aria-modal="true" aria-labelledby="calculation-title" onClick={(event) => event.stopPropagation()}>
           <button className="icon-button close" onClick={() => setDetailsOpen(false)} aria-label="Close details"><X /></button>
           <div className="eyebrow">Calculation details</div><h2 id="calculation-title">Why this comparison</h2>
-          <div className="detail-section"><h3>Cohort definition</h3><dl><div><dt>Specialty</dt><dd>{persona.subtitle.split(" · ")[0]}</dd></div><div><dt>Geography</dt><dd>Georgia</dd></div><div><dt>Data year</dt><dd>2024</dd></div><div><dt>Minimum activity</dt><dd>150 eligible claims</dd></div><div><dt>Minimum cohort</dt><dd>11 physicians · Relay demo rule</dd></div></dl></div>
-          <div className="detail-section"><h3>Included sources</h3><div className="badge-row"><ProvenanceBadge tone="blue">Public registry</ProvenanceBadge><ProvenanceBadge>Aggregate benchmark</ProvenanceBadge><ProvenanceBadge tone="gray">Synthetic demo data</ProvenanceBadge></div></div>
+          <div className="detail-section"><h3>Cohort definition</h3><dl><div><dt>Specialty</dt><dd>{persona.subtitle.split(" · ")[0]}</dd></div><div><dt>Geography</dt><dd>Georgia</dd></div><div><dt>Data year</dt><dd>2024</dd></div><div><dt>Minimum activity</dt><dd>150 eligible claims</dd></div><div><dt>Minimum cohort</dt><dd>11 physicians · Relay cohort rule</dd></div></dl></div>
+          <div className="detail-section"><h3>Included sources</h3><div className="badge-row"><ProvenanceBadge tone="blue">Public registry</ProvenanceBadge><ProvenanceBadge>Aggregate benchmark</ProvenanceBadge><ProvenanceBadge tone="gray">Illustrative record</ProvenanceBadge></div></div>
           <div className="detail-section"><h3>Not included</h3><ul className="plain-list"><li>Diagnosis or indication</li><li>Contraindications or clinical outcomes</li><li>Patients outside Medicare Part D</li><li>A complete practice denominator</li></ul></div>
           <div className="drawer-disclaimer">This comparison supports reflection. Relay has not determined whether a therapy is appropriate for any patient.</div>
         </aside>

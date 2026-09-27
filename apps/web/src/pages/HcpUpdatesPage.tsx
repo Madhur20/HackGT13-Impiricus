@@ -3,9 +3,9 @@ import { ArrowLeft, ArrowRight, BellRing, Check, Clock3, History, Network, Shiel
 import { useNavigate } from "react-router-dom";
 import { readConnectCandidates, readPracticeUpdates } from "@relay/relay-core";
 import { useDemo } from "../demo-context";
-import { DemoNotice, ProvenanceBadge } from "../components/ui";
+import { ProvenanceBadge } from "../components/ui";
 
-const formatDemoDate = (value: string, options?: Intl.DateTimeFormatOptions) => new Date(`${value}T12:00:00`).toLocaleDateString([], options);
+const formatDate = (value: string, options?: Intl.DateTimeFormatOptions) => new Date(`${value}T12:00:00`).toLocaleDateString([], options);
 
 export function HcpUpdatesPage() {
   const navigate = useNavigate();
@@ -32,17 +32,17 @@ export function HcpUpdatesPage() {
   const chooseUpdate = (id: string) => {
     setSelectedId(id);
     const update = updates.find((item) => item.id === id);
-    if (update) record({ product: "Ledger", action: "PRACTICE_UPDATE_VIEWED", purpose: "SELF_INSIGHT", decision: updateRead.decision.decision, summary: `Viewed synthetic update ${update.id}.` });
+    if (update) record({ product: "Ledger", action: "PRACTICE_UPDATE_VIEWED", purpose: "SELF_INSIGHT", decision: updateRead.decision.decision, summary: `Viewed reviewed update ${update.id}.` });
   };
 
   const askPeer = () => {
-    record({ product: "Ledger", action: "UPDATE_TOPIC_EXPLORED", purpose: "SELF_INSIGHT", decision: "allow", summary: `Opened Doctor Connect from synthetic update ${selected.id}.` });
+    record({ product: "Ledger", action: "UPDATE_TOPIC_EXPLORED", purpose: "SELF_INSIGHT", decision: "allow", summary: `Opened Doctor Connect from reviewed update ${selected.id}.` });
     navigate(`/connect?area=${encodeURIComponent(selected.therapeuticArea)}&topic=${encodeURIComponent(selected.suggestedTopics[0])}`);
   };
 
   const markReviewed = () => {
     if (!reviewedIds.includes(selected.id)) setReviewedIds((current) => [...current, selected.id]);
-    record({ product: "Ledger", action: "PRACTICE_UPDATE_REVIEWED", purpose: "SELF_INSIGHT", decision: "allow", summary: `Marked synthetic update ${selected.id} as reviewed.` });
+    record({ product: "Ledger", action: "PRACTICE_UPDATE_REVIEWED", purpose: "SELF_INSIGHT", decision: "allow", summary: `Marked update ${selected.id} as reviewed.` });
   };
 
   const showAdjacentUpdate = (direction: -1 | 1) => {
@@ -56,7 +56,7 @@ export function HcpUpdatesPage() {
         <div className="eyebrow">Medicine updates</div>
         <h1>What changed,<br />clearly explained.</h1>
         <p>Review recent pharma and drug-product changes matched to your professional interests, then discuss the practical questions with an eligible specialist.</p>
-        <div className="updates-hero-meta"><DemoNotice /><span><ShieldCheck size={15} /> Reviewed records · no patient data</span></div>
+        <div className="updates-hero-meta"><span><ShieldCheck size={15} /> Reviewed records · no patient data</span></div>
       </div>
       <div className="updates-hero-art" aria-hidden="true">
         <span className="shape shape-one" /><span className="shape shape-two" /><span className="shape shape-three" />
@@ -70,14 +70,14 @@ export function HcpUpdatesPage() {
         <div className="update-selector" aria-label="Available medicine updates">
           {updates.map((update, index) => <button key={update.id} onClick={() => chooseUpdate(update.id)} className={update.id === selected.id ? "update-selector-item active" : "update-selector-item"} aria-pressed={update.id === selected.id}>
             <span className={`selector-number visual-${index + 1}`}>{String(index + 1).padStart(2, "0")}</span>
-            <span className="selector-copy"><small>{update.therapeuticArea}</small><strong>{update.title}</strong><time>{formatDemoDate(update.publishedAt, { month: "short", day: "numeric", year: "numeric" })}</time></span>
+            <span className="selector-copy"><small>{update.therapeuticArea}</small><strong>{update.title}</strong><time>{formatDate(update.publishedAt, { month: "short", day: "numeric", year: "numeric" })}</time></span>
             {reviewedIds.includes(update.id) ? <Check size={17} /> : <ArrowRight size={17} />}
           </button>)}
         </div>
 
         <article className="update-modal" aria-live="polite">
           <div className="update-modal-toolbar"><span>{selectedIndex + 1} of {updates.length}</span><div><button onClick={() => showAdjacentUpdate(-1)} aria-label="Previous update"><ArrowLeft size={18} /></button><button onClick={() => showAdjacentUpdate(1)} aria-label="Next update"><ArrowRight size={18} /></button></div></div>
-          <div className="badge-row"><ProvenanceBadge tone="gray">Synthetic demo data</ProvenanceBadge><span className="reviewed-pill"><Check size={13} /> Reviewed update</span></div>
+          <div className="badge-row"><ProvenanceBadge tone="gray">Illustrative product record</ProvenanceBadge><span className="reviewed-pill"><Check size={13} /> Reviewed update</span></div>
           <span className="story-kicker">{selected.therapeuticArea}</span>
           <h3>{selected.title}</h3>
           <p className="update-summary">{selected.changeSummary}</p>
@@ -88,7 +88,7 @@ export function HcpUpdatesPage() {
           </div>
           <div className="why-shown"><Sparkles size={19} /><div><span>Why this is in your feed</span>{selected.relevanceReasons.map((reason) => <strong key={reason}>{reason}</strong>)}</div></div>
           <p className="update-detail-copy">{selected.detail}</p>
-          <div className="update-meta"><span><Clock3 size={14} /> Reviewed {formatDemoDate(selected.publishedAt)}</span><span><History size={14} /> History preserved</span></div>
+          <div className="update-meta"><span><Clock3 size={14} /> Reviewed {formatDate(selected.publishedAt)}</span><span><History size={14} /> History preserved</span></div>
         </article>
       </div>
     </section>

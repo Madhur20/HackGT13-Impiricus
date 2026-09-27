@@ -49,7 +49,7 @@ export function HomePage() {
         ))}
       </section>
 
-      <div className="home-trust-note"><ShieldCheck size={17} /><span><strong>Your privacy comes first.</strong> Relay uses synthetic demo data and never asks for patient details.</span></div>
+      <div className="home-trust-note"><ShieldCheck size={17} /><span><strong>Your privacy comes first.</strong> Relay does not request patient details for these workflows.</span></div>
     </div>
   );
 }

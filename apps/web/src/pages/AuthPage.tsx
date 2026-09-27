@@ -58,13 +58,13 @@ export function AuthPage() {
       <section className="auth-card" aria-labelledby="auth-title">
         <div className="auth-card-heading"><span>{mode === "signin" ? "Welcome back" : "Create your account"}</span><h2 id="auth-title">{mode === "signin" ? "Sign In" : "Sign Up"}</h2></div>
         <form onSubmit={submit} className="auth-form">
-          {mode === "signup" ? <>
+          {mode === "signup" && <>
             <label><span>NPI <b>*</b></span><input inputMode="numeric" autoComplete="off" value={npi} onChange={(event) => setNpi(event.target.value)} placeholder="1234567890" required pattern="[0-9]{10}" /></label>
             <label><span>Mobile Phone Number <b>*</b></span><input type="tel" autoComplete="tel" value={mobile} onChange={(event) => setMobile(event.target.value)} placeholder="(555) 555-5555" required /></label>
-          </> : null}
+          </>}
           <label><span>Professional Email <b>*</b></span><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@practice.com" required /></label>
           <label><span>Password <b>*</b></span><input type="password" autoComplete={mode === "signin" ? "current-password" : "new-password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={mode === "signin" ? "Enter your password" : "At least 8 characters"} required minLength={8} /></label>
-          {error ? <div className="auth-error" role="alert">{error}</div> : null}
+          {error && <div className="auth-error" role="alert">{error}</div>}
           <button className="button primary auth-submit" type="submit" disabled={submitting}>{submitting ? "Please wait…" : mode === "signin" ? "Sign In to Relay" : "Join the Relay Community"}<ArrowRight size={18} /></button>
         </form>
 

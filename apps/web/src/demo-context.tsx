@@ -23,10 +23,10 @@ const initialEvents: AuditEvent[] = [
   recordAuditEvent({
     actorId: "system",
     product: "System",
-    action: "DEMO_SEED_READY",
+    action: "WORKSPACE_READY",
     purpose: "AGGREGATE_ANALYTICS",
     decision: "allow",
-    summary: "Synthetic profiles, policy fixtures, and offline explanations loaded.",
+    summary: "Policy, profile, and offline explanation resources loaded.",
   }),
 ];
 
