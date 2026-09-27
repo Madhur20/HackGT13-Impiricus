@@ -31,7 +31,7 @@ The pitch predates a safety and architecture review. Never restore a pitch claim
 
 - Relay is one consent, policy, provenance, explanation, and audit foundation supporting three different product computations. Do not implement one fake universal delta/similarity algorithm.
 - Practice Mirror is descriptive. It must not infer guideline adherence, care quality, diagnosis, indication, treatment appropriateness, or patient eligibility from Part D data.
-- Doctor Connect uses governed categorical questions and structured responses in the hackathon build. It has no open chat, attachments, patient narratives, or exact dose-entry fields.
+- Doctor Connect captures the requester question in four scoped free-text fields and the responder answer in one capped free-text field. Both sides require an explicit privacy/safety check, exact preview, physician confirmation, and temporary-draft disposal; the requester also generalizes an exact age to a disclosed coarse range. It has no open chat, attachments, patient narrative paragraph, or exact dose-entry fields.
 - Physician identity comes only from the active account session. Do not add a profile switcher or query-parameter impersonation; account changes must go through sign-out and sign-in.
 - Peer identity requires active matching consent. Contact information requires active consent from both physicians and a fresh authorization check when retrieved.
 - Ledger gives physicians reviewed before/after drug-product changes and routes governed specialist discussions. It does not recommend treatment, change prescriptions, interpret contracts, or let an LLM make clinical decisions.

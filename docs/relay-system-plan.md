@@ -222,7 +222,7 @@ Suggested production collections:
 - `consent_grants`
 - `question_taxonomy`
 - `consult_requests`
-- `structured_answers`
+- `peer_answers`
 - `reviewed_product_changes`
 - `policy_rules`
 - `audit_events`

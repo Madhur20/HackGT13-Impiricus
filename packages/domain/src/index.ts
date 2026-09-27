@@ -49,12 +49,26 @@ export type QuestionSelection = {
   conditionTag: string;
 };
 
+export type AnswerApproach = "Review baseline context and monitoring cadence" | "Confirm treatment goals and relevant comorbidities" | "Coordinate a focused care-team review" | "Consider dosing or titration factors" | "Consider additional testing" | "No change indicated from the available context";
+export type MonitoringConsideration = "Renal trend" | "Tolerance" | "Volume status" | "Follow-up cadence" | "Glycemic control" | "Blood pressure" | "Weight trend" | "Laboratory frequency";
+export type EscalationConsideration = "No escalation needed" | "Specialist or care-team review" | "Urgent referral" | "Reassess at the next follow-up";
+
 export type StructuredPeerAnswer = {
-  approach: string;
-  monitoring: string[];
-  escalation: string;
+  approach: AnswerApproach;
+  monitoring: MonitoringConsideration[];
+  escalation: EscalationConsideration;
+  taxonomyVersion: string;
   answeredAt: string;
 };
+
+export type GuardedPeerAnswer = {
+  responseText: string;
+  taxonomyVersion: string;
+  guardrailVersion: string;
+  answeredAt: string;
+};
+
+export type PeerAnswer = StructuredPeerAnswer | GuardedPeerAnswer;
 
 export type ConsultRequest = {
   id: string;
@@ -68,6 +82,7 @@ export type ConsultRequest = {
   recipientSpecialty: string;
   recipientState: string;
   recipientCredentialStatus: "verified";
+  taxonomyVersion: string;
   question: string;
   selection: QuestionSelection;
   status: "pending" | "accepted" | "declined" | "answered";
@@ -77,7 +92,7 @@ export type ConsultRequest = {
   recipientContactApproved: boolean;
   requesterReadAt?: string;
   recipientReadAt?: string;
-  answer?: StructuredPeerAnswer;
+  answer?: PeerAnswer;
 };
 
 export type MatchResult = {

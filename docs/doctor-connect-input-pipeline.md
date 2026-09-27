@@ -1,228 +1,137 @@
-# Doctor Connect — Input Pipeline Design
-### Fill-in-the-blank capture, per-field scoped parsing, and AI guardrails for both the question and the response
+# Doctor Connect — Guarded Input Pipeline
 
-*This document specifies exactly how a doctor's typed input becomes a safe, enum-validated structured object on both sides of a Doctor Connect exchange — the question (asker) and the response (responder). It supersedes any earlier open-paragraph free-text design. Read alongside the shared engine and consent model in the overall system design.*
+## 1. Current design principle
 
----
+Doctors may use their own wording in four separately scoped question fields. Relay does not replace text while they type and does not require the wording to match a fixed category.
 
-## 1. Design Principle, Stated Once
+> Keep the pre-review draft in the active browser form, run privacy and safety checks only after the physician explicitly requests review, block identified risks for revision, and retain only the physician-approved question needed for the selected peer.
 
-> **No field in the schema can ever hold a value outside a fixed, pre-declared vocabulary. Every message shown to another doctor is reconstructed from canonical category labels via a fixed template — never from anything a doctor literally typed.**
+This supersedes the earlier fixed-vocabulary design. The responder now follows the same explicit guarded-text lifecycle in one capped answer field; older structured answers remain display-compatible.
 
-Everything below is an implementation of this one rule, applied twice (question side, response side), with the same pipeline shape both times.
+## 2. Question fields
 
----
+The requester completes:
 
-## 2. Why Fill-in-the-Blank, Not One Open Paragraph
+- What they want to discuss.
+- The medication or therapy area.
+- An age or general age-group description.
+- General condition context.
 
-| | One open paragraph | Fill-in-the-blank |
-|---|---|---|
-| Parsing problem | Hard — must segment an unstructured sentence and infer which words belong to which category | Easy — each blank pre-labels its own content; a per-field parser only ever considers one narrow vocabulary |
-| Doctor behavior | Unconstrained — nothing signals what's expected, so narrative detail creeps in naturally | Primed — the interface itself communicates the expected shape of the answer at each point, reducing risky input *before* parsing even runs |
-| Failure mode when something doesn't match | Ambiguous — unclear which part of the sentence caused the miss | Localized — exactly one blank failed to resolve, so fallback (dropdown) is scoped to just that field |
+Each field independently preserves the physician's exact entry while typing and has a field-specific length cap. The UI may show a live sentence assembled from the four entries, but it must not silently categorize or replace them during entry. After the explicit review action, an exact age entered in the age field is converted to a coarse population range and disclosed alongside the original value before confirmation.
 
-This is why the fill-in-the-blank shape is the foundation of the whole design, not just a UI preference.
+Typing `72` must leave `72` in the age field. Checks must never run on the first digit or close the field while the physician is still typing. After review, the preview and stored consult use `Adults 65–89`, while the confirmation screen also shows `Entered: 72`.
 
----
+## 3. Current prototype pipeline
 
-## 3. The Question-Side Template
-
-```
-"How do peers approach ___(topic)___ for ___(therapeuticArea)___
- in ___(populationBand)___ age patients with ___(conditionTag)___?"
-```
-
-Worked example: a doctor fills the blanks with short phrases ("checking on kidneys," "jardiance," "72," "ckd") — the *filled sentence a doctor sees while typing* is a convenience; **what actually gets sent is never that raw filled sentence.** It's the four resolved fields, rendered back through the same template using canonical labels:
-
-> *"How do peers approach monitoring for SGLT2 inhibitors in adults 65–89 age patients with renal impairment?"*
-
-### 3.1 Field vocabularies (question side)
-
-```json
-{
-  "topic": ["dosing_titration", "monitoring", "side_effect_management",
-            "drug_interaction", "switching_therapy", "administration_formulation",
-            "other_suggest"],
-  "therapeuticArea": ["SGLT2_inhibitors", "GLP1_receptor_agonists", "DOACs",
-                       "biologics_TNF_inhibitors", "biologics_IL_inhibitors",
-                       "statins_high_intensity", "..." /* ~15-20 total */,
-                       "other_suggest"],
-  "populationBand": ["pediatric", "18-40", "40-65", "65-89", "other_suggest"],
-  "conditionTag": ["renal_impairment", "hepatic_impairment", "pregnancy",
-                    "cardiac_disease", "diabetes", "none", "other_suggest"]
-}
+```text
+physician types in four visible fields
+  -> draft remains in React form state
+  -> physician selects “Check privacy & safety”
+  -> each field is scanned independently
+  -> safe fields remain exactly as entered, except an exact age becomes a disclosed coarse range
+  -> flagged fields show the issue and a redacted preview
+  -> physician revises flagged text and runs the check again
+  -> physician reviews the assembled question and confirms it is general
+  -> approved question is sent to the selected peer
+  -> temporary pre-review form buffer is cleared
 ```
 
----
+The deterministic scan currently checks for:
 
-## 4. The Response-Side Template
+- conventional and lightly obfuscated email addresses;
+- formatted and unformatted US phone numbers;
+- numeric, ISO, written-month, and date-of-birth date patterns;
+- medical-record, chart, account, member, claim, case, policy, and encounter identifiers;
+- Social Security, driver's-license, and passport patterns;
+- street addresses, ZIP/postal codes, and contextual residence/work locations;
+- web URLs and social handles;
+- named-person patterns including introduced names, family relationships, initials, possessives, names before clinical statements, and trailing-name phrasing such as `Bob has renal impairment`, `Bob's renal impairment`, and `renal impairment for Bob`;
+- exact-age phrases outside the age field, and mixed patient detail inside the age field;
+- text exceeding the cap for that field.
 
-```
-"Approach: ___(approachConsidered)___.
- Monitoring: ___(monitoringConsiderations, multi-select)___.
- Escalation: ___(escalationConsiderations)___."
-```
+Safety-event and product-complaint phrases follow the existing stop path instead of entering peer matching.
 
-Worked example:
+Examples that must be rejected for revision include:
 
-> *"Approach: Confirm treatment goals and relevant comorbidities. Monitoring: Renal trend, Tolerance, Volume status. Escalation: Need for specialist or care-team review."*
+- `Bob's renal impairment`
+- `Renal impairment for Bob`
+- `Patient J.D. has CKD`
+- `Call 404-555-0199`
+- `MRN 1234-ABCD`
+- `Seen January 3, 2024`
 
-### 4.1 Field vocabularies (response side)
+The physician should remove the identifying detail and retain only the general clinical-practice context. An exact age entered by itself in the age field is handled differently: it is visibly generalized to a coarse range before confirmation.
 
-```json
-{
-  "approachConsidered": ["review_baseline_and_monitoring_cadence",
-                          "confirm_treatment_goals_and_comorbidities",
-                          "coordinate_care_team_review",
-                          "adjust_dosing_or_titration",
-                          "initiate_additional_testing",
-                          "no_change_indicated", "other_suggest"],
-  "monitoringConsiderations": ["renal_trend", "tolerance", "volume_status",
-                                "follow_up_cadence", "glycemic_control",
-                                "blood_pressure", "weight_trend",
-                                "lab_frequency", "other_suggest"],  // enum_array
-  "escalationConsiderations": ["no_escalation_needed",
-                                "specialist_or_care_team_review",
-                                "urgent_referral",
-                                "reassess_at_next_follow_up", "other_suggest"]
-}
-```
+## 4. Redaction behavior
 
-**Open item:** confirm the exact `escalationConsiderations` options against clinical review — the five above are a reasonable placeholder set, not yet validated.
+Redaction is explanatory, not silent mutation. When a likely identifier is found, Relay leaves the original entry visible, identifies the risk type, shows a redacted preview, and blocks continuation until the physician edits the field and reruns the check. Age generalization is the one allowed transformation: it occurs only after review, is shown explicitly, and requires confirmation before sending.
 
-**Design note:** the response side, as currently mocked (dropdown + checkbox, no visible free text), is already at the strongest point on the safety spectrum — zero free text, nothing to parse, nothing to redact. Adding free-text input here (§5–7 below) is an optional, deliberate trade of some safety margin for expressiveness. Default recommendation: **ship the response side as pure dropdown/checkbox with no free text**, and only add the pipeline below if dropdown options prove too restrictive in practice.
+Relay must not quietly send the redacted version because that could change meaning without the physician noticing.
 
----
+## 5. AI guardrail boundary
 
-## 5. The Per-Field Pipeline (Applies Identically to Every Blank, Either Side)
+The current offline prototype does not call an external AI service and must not pretend that it does. Its UI calls the implemented stage an automated safety guardrail and explains that reviewed local rules are active.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  For EACH blank/field independently:                             │
-└─────────────────────────────────────────────────────────────────┘
+A production AI classifier may be added after privacy, security, and clinical review. If added:
 
- 1. RAW INPUT (browser only)
-    Doctor types a short phrase into ONE blank (char-capped, ~30-40 chars)
-            │
-            ▼
- 2. LOCAL DICTIONARY / PATTERN MATCH — scoped to THIS field's vocabulary only
-    - Exact-match dictionary for short abbreviations (CKD, ARB, ACEi)
-    - Fuzzy match (BK-tree / edit-distance ≤2) for words of 5+ letters only
-    - Numeric pattern rules for anything age-shaped (\d{1,3}\s*(yo|y/o))
-    - Synonym/brand-name tables per category
-            │
-      matched? ──yes──► resolved_fields[field] = canonical_enum_value
-            │
-            no
-            ▼
- 3. RESIDUAL TEXT — only the unmatched phrase for THIS field, already short,
-    already scoped, sent to AI ONLY IF step 2 failed
-            │
-            ▼
- 4. AI PASS — Gemini, constrained decoding
-    - Output type is a strict enum of THIS field's specific vocabulary only
-    - Model is structurally incapable of emitting a value outside that enum
-    - Never asked to parse the whole sentence — only this one field's residual
-            │
-      confident match? ──yes──► resolved_fields[field] = canonical_enum_value
-            │
-            no (low confidence)
-            ▼
- 5. MANDATORY DROPDOWN FALLBACK — for this field only
-    Doctor must pick from the same fixed vocabulary manually.
-    No guess, no passthrough, no partial text ever stored.
-            │
-            ▼
- 6. resolved_fields[field] is now guaranteed ∈ fixed vocabulary,
-    end of pipeline for this field
-```
+- it receives one locally redacted field at a time, never the full draft question;
+- it returns structured risk codes and confidence, not rewritten clinical prose;
+- it cannot authorize, send, rank peers, or override a deterministic block;
+- low confidence blocks for physician revision or human review;
+- raw fields and model payloads are not logged;
+- retention and vendor data-use terms must be approved;
+- the deterministic scanner remains available when AI is unavailable.
 
-Repeat for all fields on whichever side is active, then:
+## 6. What is discarded and what is retained
 
-```
- 7. MERGE all resolved_fields
-            │
-            ▼
- 8. TEMPLATE RECONSTRUCTION
-    Final message = fixed template string + canonical labels ONLY.
-    NEVER the doctor's literal typed text — even a correctly-matched
-    phrase is displayed as its canonical label, not as-typed.
-            │
-            ▼
- 9. HUMAN REVIEW
-    Doctor sees the reconstructed sentence, can re-edit any single
-    field (returns to step 1 for that field only), must confirm
-    before send.
-```
+- **Discarded:** temporary pre-review form state and locally generated redacted previews after send or cancellation.
+- **Retained:** the physician-reviewed question and its four approved field values, including only the coarse age range when an exact age was entered, because the recipient needs them to answer.
+- **Never retained:** a flagged version that failed the privacy/safety gate.
 
----
+The current prototype stores approved consults in browser `localStorage`. A shared backend must apply the same validation before cross-device storage and delivery.
 
-## 6. Non-Negotiable Implementation Rules
+Do not claim that all input is “dumped” after send; that would be false because the approved question is the product message. Say that the temporary draft is cleared and only the reviewed question is retained.
 
-1. **Raw input never crosses the network as a full sentence** — only the already-locally-processed, per-field residual (short, pre-scoped) text is eligible to reach an AI call, and only for the one field that failed local matching.
-2. **Server-side re-validation on receipt, always.** Never trust client-side parsing alone — reject any field value not drawn from that field's exact known enum list. This is the actual backstop against a parsing bug, not just a nicety.
-3. **Every field's AI call is constrained to that field's enum only** — never a general-purpose classification call that could return anything. This is what makes the guarantee structural rather than a matter of prompting discipline.
-4. **The reconstructed message is template-generated, never AI-generated.** The AI's only job anywhere in this pipeline is picking an enum value for one field — it never authors the sentence a doctor reads.
-5. **Raw text and unmatched residuals are never logged or persisted** — cleared from memory immediately after each field resolves. Application logs, error traces, and analytics must not capture them either.
-6. **Multi-select fields (`monitoringConsiderations`) are validated per-element** — every item in the array must independently be a member of the fixed set.
-7. **`other_suggest` never reaches the other doctor.** Selecting it opens a short, capped box that logs a *suggestion* for Impiricus's own review queue — it is not part of the sent message under any circumstance.
+## 7. Matching from free text
 
----
+Question capture no longer requires categories. Matching may derive narrow internal topic signals from recognizable terms, such as a medicine/class alias or broad condition term, without changing displayed text.
 
-## 7. What We Guarantee vs. What We Don't
+Derived signals must not be shown as physician-entered text, widen eligibility, or bypass consent. They remain subordinate to verification, availability, evidence, and matching-consent filters. Insufficient evidence must produce an honest no-strong-match state.
 
-**We guarantee, structurally:**
-- No field in the schema can hold a name, exact date, location finer than state, or narrative text.
-- No raw sentence is ever transmitted, logged, or persisted — only short, pre-scoped residuals for fields the dictionary couldn't resolve, and only until they're classified.
-- Every value in every sent message is drawn from a fixed, versioned vocabulary, enforced both at the AI decoding layer and again at the server on receipt.
-- The message shown to another doctor is always template-reconstructed from canonical labels — never a copy of anything a doctor typed.
+## 8. Response side
 
-**We do not guarantee, and should never claim:**
-- Zero risk in absolute terms — no system accepting any doctor input can honestly claim that.
-- Protection against a rare *combination* of correctly-categorized fields being identifying in a small practice (e.g., an unusual drug + age band + comorbidity, in a small specialty/region). This is a statistical re-identification risk, not a parsing failure, and no text-handling rigor prevents it alone.
-- Perfect code correctness forever — a regex edge case, tokenization change, or library update could in principle introduce a gap; server-side re-validation (§6.2) is the mitigation, not a claim that no bug can ever exist.
+After accepting a request, the responder writes one capped general-practice answer. Relay does not check or rewrite it while the physician types. The responder explicitly selects **Check privacy & safety**, receives the same direct-identifier and safety-event scan, revises any flagged text, reviews the exact approved answer, confirms that it is non-identifying professional experience, and sends it. The consult boundary repeats validation and stores only the reviewed answer with guardrail/taxonomy version and timestamp. Temporary responder draft and redaction-preview state are cleared after send.
 
-State both halves together, always — the guarantee is genuinely strong, and naming its edges is what makes it credible rather than a claim someone can pick apart later.
+This is not open chat: there is one answer per accepted request, no reply thread, attachments, patient narrative field, exact dose field, or unreviewed passthrough. Previous enum-built answers remain readable for existing browser data.
 
----
+## 9. Visible trust explanation
 
-## 8. Governed Vocabulary Expansion
+The requester UI shows four stages:
 
-Every field includes `other_suggest`. Selecting it:
-1. Opens a short, capped free-text box (visually distinct from the main flow)
-2. That text is logged to a review queue only — never included in the sent message, never shown to the matched peer
-3. Impiricus's own team reviews suggestions in batch; a term that recurs gets promoted to a real vocabulary entry in the next config update
+1. Draft stays visible in the browser form.
+2. Field-by-field privacy scan.
+3. Automated safety guardrail, with honest prototype/production wording.
+4. Temporary draft disposal after send.
 
-This is the single governed path for handling "my situation doesn't fit any option" — deliberately not an open door, and consistent across every field on both sides.
+The requester confirmation repeats all four physician-entered values. The responder confirmation repeats the exact reviewed answer. Both physicians can verify what will be sent.
 
----
+## 10. Residual risk
 
-## 9. Live Feedback (UX Layer, Not a Safety Mechanism)
+The scanner reduces risk; it does not prove de-identification or guarantee that all personal information will always be detected. A combination of otherwise ordinary facts may still identify someone in a small practice or rare context. Production requires server-side validation, approved AI/vendor handling if used, monitoring, incident response, and clinical/privacy review.
 
-As a doctor types into a blank, show the matched category updating in real time (e.g., the blank highlights when a confident local match is found, shows "still parsing..." during an AI call, or shows "needs your selection" on fallback). This reinforces the priming effect from §2 and surfaces problems before submission — but it is a trust/UX feature, not itself a guarantee; the actual guarantee is entirely in the pipeline (§5) and the validation rules (§6).
+## 11. Required tests
 
----
-
-## 10. Edge Cases
-
-| Case | Handling |
-|---|---|
-| Doctor types a name into an age/drug/condition blank | Fails local match (not in that field's vocabulary) → fails AI match (outside the constrained enum) → falls to mandatory dropdown, name never stored anywhere |
-| Doctor types a correct term with unusual phrasing the dictionary hasn't seen | Local match fails → AI pass resolves it within the field's constrained enum → stored as canonical label, not the phrasing used |
-| AI pass is unavailable (offline / API failure) | Falls straight to mandatory dropdown for that field — pipeline degrades gracefully, never blocks or guesses |
-| Multi-select response field has one invalid element mixed with valid ones | Server rejects the entire array on validation failure, does not silently drop just the bad element (avoids ambiguity about what was actually sent) |
-| A rare, fully-valid field combination could still be identifying (small practice, unusual drug + age + comorbidity) | Acknowledged as a residual risk (§7), not solved by this pipeline — a v2 concern, same category as Practice Mirror's small-cohort suppression |
-
----
-
-## 11. Build Checklist
-
-1. Build the per-field local dictionary/pattern matcher first, for question-side fields — test it in isolation before wiring any AI fallback
-2. Build the enum-constrained Gemini call for a single field, confirm it structurally cannot return an out-of-enum value (test this explicitly, don't assume)
-3. Wire the fallback-to-dropdown path — this should be the easiest part, since it's just the original pure-categorical UI as a safety net
-4. Build template reconstruction (§5, step 8) — verify by direct test that it never renders raw input, only canonical labels
-5. Add server-side re-validation on the API boundary — reject anything not in the known enum, log the rejection
-6. Repeat steps 1–5 for the response-side fields, or skip entirely if shipping response-side as pure dropdown/checkbox (recommended default, §4)
-7. Add the `other_suggest` capture-to-review-queue path, confirmed to never enter the sent-message code path
-8. Add live per-field feedback UI
-9. Rehearse the demo: one field resolved locally, one field resolved via AI fallback, one field forced to manual dropdown — show all three paths working live
+- A two-digit age remains visible and unchanged while typing.
+- Exact ages in the age field map to documented coarse ranges after review and only the range enters consult storage.
+- Exact-age phrases outside the age field block progression.
+- Safe free text is reconstructed exactly into the review question.
+- Common variants of email, phone, exact date/DOB, record and government ID, address/location, online identifier, initials, family/person name, and clinical-name phrasing block progression.
+- A flagged field displays a redacted preview without mutating its original input.
+- Changing any field invalidates the prior review and requires a new check.
+- A failed question cannot enter consult storage.
+- A safety-event phrase triggers the stop path.
+- Temporary draft state clears after send while the approved question remains available to the recipient.
+- Responder free text cannot be sent before explicit privacy/safety review and confirmation.
+- Identifier and safety-event examples that block requester text also block responder text.
+- A failed responder answer cannot enter consult storage, and editing invalidates the prior review.
+- Legacy structured answers still render without invoking the guarded-text storage path.

@@ -4,6 +4,37 @@ This file records durable decisions. New entries should include a date, status, 
 
 ## Accepted baseline decisions
 
+### 2026-09-27 — Responder uses the same explicit guarded-text lifecycle
+
+- **Status:** Accepted; supersedes structured-only responder input
+- **Decision:** After accepting a request, the responder writes one capped free-text answer. Relay preserves the draft while typing, runs deterministic identifier and safety-event checks only after an explicit action, blocks flagged content for revision, shows the exact reviewed answer, requires physician confirmation, revalidates at storage, retains only the approved answer, and clears temporary draft/review state. This is one answer, not open chat. Existing enum-built answers remain readable for browser-data compatibility.
+- **Reason:** The answering physician needs enough expressiveness to provide useful professional context, and using the same visible review lifecycle on both sides is easier to understand and demonstrate than a separate category-only response builder.
+- **Boundary:** The pattern scanner reduces risk but does not prove de-identification. Production still requires authenticated server-side validation, approved contextual classification/human review, pharmacovigilance procedures, abuse controls, and retention rules. No attachments, reply thread, patient narrative field, or exact dose-entry field is introduced.
+- **Affected:** Inbox response builder, answer domain/storage, requester final-answer view, guardrail tests, plans, maintained context, and agent guidance.
+
+### 2026-09-27 — Reviewed age generalization and expanded deterministic identifier coverage
+
+- **Status:** Accepted
+- **Decision:** Preserve every field exactly while the physician types. On the explicit privacy/safety action, convert a valid exact age entered in the age field to one of five coarse bands (`under 18`, `18–39`, `40–64`, `65–89`, `90+`), display both the entered and reviewed values, and retain only the band in the consult. Block exact-age phrases outside that field. Expand the local scanner across common variants of names/person references, dates/DOB, contact details, medical/government identifiers, addresses/precise locations, and online identifiers.
+- **Reason:** The demo should visibly reduce common personal-data leakage without interrupting entry or pretending deterministic patterns prove de-identification. Age generalization preserves useful peer-matching context while removing an unnecessary exact value.
+- **Boundary:** Heuristics can produce false positives and miss novel/contextual identifiers. They are a front-end and storage-boundary defense for the prototype, not a HIPAA de-identification determination or a substitute for production server validation, privacy review, monitoring, and a reviewed contextual classifier/human-review path.
+- **Affected:** Doctor Connect field review, question preview, consult storage, tests, detailed plan, maintained context, and agent guidance.
+
+### 2026-09-27 — Physician-authored scoped question with explicit guardrails
+
+- **Status:** Accepted for requester input; its structured-only responder clause is superseded by the guarded responder decision above
+- **Decision:** Let requesters keep their own wording in four capped fields and run privacy/safety review only after an explicit action. Never replace text during typing. Flag identifier patterns with an explanatory redacted preview and require physician revision; retain only the reviewed question after confirmation and clear temporary pre-review form state after send. Keep the response structured-only. The prototype uses honest deterministic local checks; an external AI classifier remains a reviewed future integration.
+- **Reason:** Physicians need expressive input and must be able to see exactly what they entered, while the product still needs a visible, enforceable boundary against direct identifiers and safety-event content.
+- **Boundary:** The scanner reduces risk but does not prove de-identification. The approved question must be retained for the recipient, so only temporary draft state—not the reviewed message—is described as discarded. Production requires server-side validation and approved AI/vendor handling if an AI classifier is added.
+- **Affected:** Doctor Connect requester, privacy/safety pipeline, matching-signal derivation, consult validation, UI trust explanation, tests, agent guidance, and product documentation.
+
+### 2026-09-27 — Field-scoped Doctor Connect input pipeline
+
+- **Status:** Superseded by the physician-authored scoped question decision above
+- **Decision:** Capture the requester question through four independent short blanks, resolve each against its own versioned fixed vocabulary, clear raw phrases after local resolution, require a reviewed dropdown on a miss, and reconstruct the sent question from canonical labels only. Keep the responder on enum-only controls, add a canonical response preview and explicit confirmation, and validate both payloads again at the consult boundary. Do not simulate an AI classifier while no constrained production integration exists.
+- **Reason:** Field scoping and template reconstruction improve usability without allowing narrative text to enter consult storage, and the offline dropdown fallback preserves the safety boundary when local matching cannot resolve a phrase.
+- **Affected:** Doctor Connect requester, Inbox response builder, domain vocabulary, consult storage boundary, tests, UI, and product documentation.
+
 ### 2026-09-26 — Account-bound local identity and two-sided consult preview
 
 - **Status:** Accepted
@@ -171,7 +202,7 @@ This file records durable decisions. New entries should include a date, status, 
 
 ### 2026-09-26 — Connect uses structured-only input for the prototype
 
-- **Status:** Accepted
+- **Status:** Superseded for requester input by the physician-authored scoped question decision and for responder input by the guarded responder decision
 - **Decision:** Use governed categorical questions and structured responses. Exclude optional notes, category-suggestion text, open chat, attachments, patient narratives, and exact dose fields.
 - **Reason:** Data minimization reduces risk and gives the demo a clear, testable boundary. Controlled vocabulary does not justify a claim of zero privacy risk.
 - **Affected:** Doctor Connect, taxonomy, safety, reusable answers.

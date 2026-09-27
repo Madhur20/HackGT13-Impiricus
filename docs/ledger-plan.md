@@ -70,7 +70,7 @@ The handoff passes only:
 - Therapeutic area or medication class.
 - One approved discussion topic, such as switching, monitoring, initiation, or tolerability.
 
-The physician must review and confirm that the question is general and does not describe a specific patient. Doctor Connect owns matching, request state, structured responses, contact consent, and safety stops.
+The physician must review and confirm that the question is general and does not describe a specific patient. Doctor Connect owns matching, request state, privacy-reviewed physician answers, contact consent, and safety stops.
 
 ## 7. Interface
 

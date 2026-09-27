@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { ConsultRequest, HcpProfile, Persona, QuestionSelection, StructuredPeerAnswer } from "@relay/domain";
+import type { ConsultRequest, HcpProfile, Persona, QuestionSelection } from "@relay/domain";
+import { ANSWER_GUARDRAIL_VERSION, ANSWER_TAXONOMY_VERSION, QUESTION_TAXONOMY_VERSION, assembleQuestion, prepareAnswerText, prepareQuestionSelection } from "@relay/doctor-connect";
 
 const storageKey = "relay.consult-requests.v2";
 const channelName = "relay-consult-requests";
@@ -7,7 +8,6 @@ const channelName = "relay-consult-requests";
 type NewRequest = {
   requester: Persona;
   recipient: HcpProfile;
-  question: string;
   selection: QuestionSelection;
 };
 
@@ -15,7 +15,7 @@ type ConsultContextValue = {
   requests: ConsultRequest[];
   createRequest: (input: NewRequest) => ConsultRequest;
   setStatus: (id: string, status: "accepted" | "declined") => void;
-  submitAnswer: (id: string, answer: Omit<StructuredPeerAnswer, "answeredAt">) => void;
+  submitAnswer: (id: string, responseText: string) => void;
   setContactApproval: (id: string, side: "requester" | "recipient", approved: boolean) => void;
   markRead: (id: string, side: "requester" | "recipient") => void;
 };
@@ -70,7 +70,8 @@ export function ConsultProvider({ children }: { children: ReactNode }) {
     return next;
   }, []);
 
-  const createRequest = useCallback(({ requester, recipient, question, selection }: NewRequest) => {
+  const createRequest = useCallback(({ requester, recipient, selection }: NewRequest) => {
+    const approvedSelection = prepareQuestionSelection(selection);
     const now = new Date().toISOString();
     const request: ConsultRequest = {
       id: crypto.randomUUID(),
@@ -84,8 +85,9 @@ export function ConsultProvider({ children }: { children: ReactNode }) {
       recipientSpecialty: recipient.specialty,
       recipientState: recipient.state,
       recipientCredentialStatus: "verified",
-      question,
-      selection: { ...selection },
+      taxonomyVersion: QUESTION_TAXONOMY_VERSION,
+      question: assembleQuestion(approvedSelection),
+      selection: { ...approvedSelection },
       status: "pending",
       createdAt: now,
       updatedAt: now,
@@ -100,11 +102,12 @@ export function ConsultProvider({ children }: { children: ReactNode }) {
     commit((current) => current.map((request) => request.id === id ? { ...request, status, recipientReadAt: request.recipientReadAt ?? new Date().toISOString(), updatedAt: new Date().toISOString() } : request));
   }, [commit]);
 
-  const submitAnswer = useCallback<ConsultContextValue["submitAnswer"]>((id, answer) => {
+  const submitAnswer = useCallback<ConsultContextValue["submitAnswer"]>((id, responseText) => {
+    const approvedText = prepareAnswerText(responseText);
     commit((current) => current.map((request) => request.id === id ? {
       ...request,
       status: "answered",
-      answer: { ...answer, monitoring: [...answer.monitoring], answeredAt: new Date().toISOString() },
+      answer: { responseText: approvedText, taxonomyVersion: ANSWER_TAXONOMY_VERSION, guardrailVersion: ANSWER_GUARDRAIL_VERSION, answeredAt: new Date().toISOString() },
       recipientReadAt: request.recipientReadAt ?? new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     } : request));

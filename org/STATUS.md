@@ -7,7 +7,7 @@ Last updated: 2026-09-27.
 - **Stage:** Functional browser-first hackathon prototype.
 - **Repository contents:** Product/system plans, maintained context, contribution guidance, module boundaries, and a TypeScript workspace.
 - **Application code:** React/Vite web shell with a DocUpdate-compatible local sign-in/sign-up screen, Home, Practice Mirror, RL-backed Doctor Connect, a recipient Inbox, physician-facing Ledger Updates, and a shared Audit view.
-- **Tests:** 35 deterministic tests across local credential validation, consult unread state, cohort comparison, matching, policy, account-aware data-broker reads, update filtering/personalization and specialist eligibility, semantic-diff, peer domain clustering/discovery, and Network Graph expertise/trust matching, contextual-bandit ranking (UCB determinism/exploration, seeded Thompson reproducibility, eligibility), account-to-account routing, and learning behavior.
+- **Tests:** 43 deterministic tests across local credential validation, consult unread state, guarded free-text question/answer handling and age generalization, legacy structured-answer compatibility, cohort comparison, matching, policy, account-aware data-broker reads, update filtering/personalization and specialist eligibility, semantic-diff, peer domain clustering/discovery, and Network Graph expertise/trust matching, contextual-bandit ranking, account-to-account routing, and learning behavior.
 - **Demo readiness:** Core click paths work from synthetic seed data and the production bundle builds. Headless Chrome checks confirm the new sign-in screen, authenticated Doctor Connect, Inbox, and the five-stage UCB match funnel render without a Vite error overlay at 1440 × 1000; hands-on mobile and full two-account interaction QA remain open.
 - **Data:** Forty-four synthetic HCP directory profiles (36 baseline, six featured experts, and two additional account profiles), prescribing fixtures, per-physician prescribing vectors and account-specific Mirror data, Network Graph fixtures (expertise tags/edges, peer-help profiles, seeded trust edges), three reviewed medicine-update fixtures, consent failure cases, and a fictional versioned policy.
 - **Deployment:** Production is hosted at `https://relay-hackgt13.vercel.app` through the `madhur20s-projects/relay-hackgt13` Vercel project. No backend is configured.
@@ -21,7 +21,7 @@ Harden the working prototype for the hackathon demo:
 1. Perform hands-on responsive QA in Chrome and on a phone-sized device.
 2. Add browser-level tests for sign-in, the two-account Connect → Inbox → Connect lifecycle, consent revocation, double-consent contact reveal, Mirror → Connect, and Updates → Connect.
 3. Add a deterministic reset for browser-local account, consult, page, and audit state.
-4. Decide whether the hackathon needs a minimal API/persistence layer or should remain an intentionally local prototype.
+4. After the input-pipeline work, evaluate the deferred Supabase Auth + Postgres + Realtime option for cross-device accounts, consult persistence, and notifications; it is a candidate, not yet an accepted architecture decision.
 5. Prepare deployment and a concise scripted demo run.
 
 ## Required early fixtures
@@ -51,6 +51,48 @@ The next demo-hardening milestone is complete when:
 - **Changed:** Inbox no longer auto-opens the first request, so a request is marked read only when the physician clicks it; unread requests show a dot and heavier name. Doctor Connect gained a **Your questions** list of every request the physician sent, newest first, with a dot on unread answers; opening one restores it and marks the answer read. Previously visiting Inbox silently read one request, and answers to any request other than the single active one could never be opened, leaving the Doctor Connect badge stuck.
 - **Verified:** Browser run with two unread requests and two unread answers: Inbox 2 → visit 2 → open first 1 → reopen first 1 → open second 0; Doctor Connect 2 → visit 2 → open first 1 → open second 0; counts persist across reload. `npm run check` passes.
 - **Open:** Browser automation for this flow is not yet in the test suite.
+
+### 2026-09-27 — Guarded free-text physician answer flow
+
+- **Changed:** Replaced the recipient's category-only response builder with one capped physician-authored answer using the same explicit write → privacy/safety check → exact preview → confirmation → send lifecycle as the requester. Added storage-boundary validation, guardrail/taxonomy versioning, temporary-draft clearing, a prose response view for the requester, and compatibility rendering for older enum-built answers. Updated the durable product boundary and plans.
+- **Verified:** `npm run check` passes TypeScript validation, 43 tests, and the production build. Tests cover safe answer retention, direct-identifier rejection, exact-age rejection, safety-event stopping, and legacy structured-answer validation.
+- **Open:** Browser-level two-account coverage and hands-on responsive QA for the new recipient flow remain open. Deterministic patterns still do not prove de-identification; production needs server enforcement and reviewed classifier/human-review and pharmacovigilance procedures.
+- **Next:** Add an end-to-end Elena → Maya test that accepts a request, rejects a flagged answer, sends a reviewed safe answer, and verifies requester notification/display.
+
+### 2026-09-27 — Inbox compatibility guard and broader name phrasing
+
+- **Changed:** Prevented the Inbox from calling the strict response assembler with incomplete or legacy stored answer values; malformed/older answers now fail validation and the response builder resets to current defaults instead of crashing. Expanded person-name detection to cover common possessives, curly apostrophes, trailing names, clinical separators, and variants such as `bob's Renal impairment` and `Renal impairment for bob`. Added a collapsed invalid-example guide to the question screen.
+- **Verified:** `npm run check` passes TypeScript validation, 42 tests, and the production build. Regression coverage includes legacy/malformed structured answers and the new name phrasings.
+- **Open:** Browser storage can still contain other obsolete consult shapes from earlier prototypes; a future versioned migration/reset path remains advisable.
+- **Next:** Add a browser test that opens Inbox with a legacy stored answer and confirms the page remains usable, plus interaction coverage for each displayed invalid example.
+
+### 2026-09-27 — Expanded personal-data scan and age generalization
+
+- **Changed:** Expanded Doctor Connect's deterministic privacy scan across common email, phone, exact date/DOB, medical/government ID, address/location, online-identifier, initials, family-name, and clinical-name phrasings. Exact ages remain untouched while typing; after the explicit check, the age field maps them to a disclosed coarse range, the confirmation view shows both values, and consult storage receives only the range. Exact-age phrases elsewhere block progression.
+- **Verified:** `npm run check` passes TypeScript validation, 42 tests, and the production build. Regression coverage exercises common format combinations, five age bands, disclosed age transformation, and storage-safe reviewed selection.
+- **Open:** Pattern coverage cannot prove de-identification and may produce false positives; browser-level interaction coverage and a production reviewed classifier/human-review path remain open.
+- **Next:** Exercise the review screen at desktop/mobile widths and add an end-to-end test proving `72` stays editable, becomes `Adults 65–89` after checking, and is stored only as that range.
+
+### 2026-09-27 — Contextual patient-name guardrail
+
+- **Changed:** Expanded Doctor Connect's local privacy scan beyond explicit `patient named` wording. Clinical sentence patterns such as `Bob has renal impairment`, `Maya Chen takes Jardiance`, `my patient Elena`, and `Bob's renal function` now flag a named-person risk, show a redacted preview, and block storage until revised.
+- **Verified:** `npm run check` passes TypeScript validation, 41 tests, and the production build. The new coverage exercises both field-level warnings and storage-boundary rejection for natural-language patient-name references.
+- **Open:** This deterministic pattern detector reduces risk but does not certify de-identification; uncommon phrasing and ordinary facts that identify someone contextually still require production classifier/human-review safeguards.
+- **Next:** Add browser-level coverage for the visible warning and revision flow.
+
+### 2026-09-27 — Physician-authored question and visible privacy pipeline
+
+- **Changed:** Stopped per-keystroke category replacement, preserved all four requester entries visibly, allowed exact age text such as `72`, moved review behind an explicit privacy/safety action, added identifier detection with non-mutating redacted previews, added a four-stage trust explanation, repeated entered values on confirmation, derived matching signals without rewriting text, and clarified temporary-draft disposal versus approved-question retention.
+- **Verified:** `npm run check` passes TypeScript validation, 40 tests, and the production build. Tests verify exact free-text reconstruction, two-digit age preservation, internal tag derivation, all implemented identifier classes, non-mutating redaction previews, safety-stop enforcement, and structured response validation.
+- **Open:** The deterministic scanner is not proof of de-identification, and the external AI guardrail is not implemented. Browser automation for review invalidation and draft disposal remains open.
+- **Next:** Add browser coverage for typing `72`, flagged identifier revision, review confirmation, and recipient display; then apply the same contract server-side when the deferred cross-device backend is introduced.
+
+### 2026-09-27 — Governed Doctor Connect question and answer pipeline
+
+- **Changed:** Replaced the requester dropdown form with four short fill-in-the-blank fields backed by field-scoped alias, age-pattern, and limited fuzzy matching; added a mandatory per-field dropdown fallback, canonical live sentence, raw-input clearing, taxonomy versions, consult-boundary validation/reconstruction, expanded enum-only responder choices, a canonical answer preview, and required responder confirmation.
+- **Verified:** `npm run check` passes TypeScript validation, 37 tests, and the production build. New tests cover brand/class, age, abbreviation, spelling-variation, unresolved-name, canonical response, and invalid multi-select behavior.
+- **Open:** The constrained Gemini classification fallback and governed missing-vocabulary review queue remain unimplemented; unresolved fields intentionally fall directly to reviewed dropdowns. Browser-level interaction and mobile visual QA remain open.
+- **Next:** Add browser automation for one locally resolved field, one mandatory fallback field, canonical question storage, and responder confirmation, then connect the same validated contracts to the planned shared backend.
 
 ### 2026-09-27 — Vercel deployment configuration
 
