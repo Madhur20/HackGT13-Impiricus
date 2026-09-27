@@ -2,6 +2,8 @@
 
 **Relay connects underserved doctors to the specialists who can actually help them — matched on real prescribing, drug, and regional history, and getting smarter with every connection.**
 
+**Live app:** <https://relay-hackgt13.vercel.app>. See [Sign-in and two-physician testing](#sign-in-and-two-physician-testing) for the physician accounts.
+
 ## The problem
 
 Doctors at large academic hospitals already have a network. There is a cardiologist down the hall, an oncologist in the next department, a specialist they trained with, a colleague they can text when a case gets hard.
@@ -27,17 +29,18 @@ Relay does all of this using **zero patient data**.
 
 ## It learns from every connection
 
-Relay is a continuously learning platform. At its center is the **Relay Network Graph** — a living map of *who knows what* and *who has successfully helped whom*.
+Relay learns which peers actually help. Two separate models group and rank physicians:
 
-- **Who knows what.** Every physician is linked to the conditions, drug classes, topics, and skills they actually work in, backed by evidence (their prescribing history, declared experience, specialty, and publications). This is how Relay narrows a broad specialty down to the handful of doctors with real, relevant experience.
-- **Who has successfully helped whom.** After each connection, Relay asks two quick questions — *Was this useful? Did you get what you needed?* A useful answer strengthens a trusted link to that specialist on that topic. Relay comes to know not just who *claims* expertise, but who other doctors genuinely found helpful.
-- **The flywheel.** Every successful connection makes the graph richer, which makes the next match better, which produces more successful connections. The network gets smarter the more it is used.
+1. **Prescribing-domain clustering (k-means)** groups doctors by how they actually prescribe. Practice Mirror uses it to show "who practices like you."
+2. **Reinforcement-learning peer matching (contextual bandit)** ranks the eligible specialists for a specific Doctor Connect question. It learns from each connection's outcome which peers really help on which topics.
+
+Both models use only physician-level professional data, never patient data. Both run behind the same consent and policy checks.
 
 ## Three things you can do in Relay
 
 ### 1. Find the right peer
 
-Describe what you need — a drug class, a condition, the kind of help you want — and Relay routes you to eligible, opted-in specialists who fit on prescribing history, expertise, region, and proven peer outcomes. You see clear reasons for every match ("prescribes the same therapies you do," "relevant publication history," "highly rated by peers on this topic"), pick one, and connect only after both sides agree.
+Describe what you need — the topic, the medication or therapy, a general age group, and the condition context — and Relay routes you to eligible, opted-in specialists ranked by the reinforcement-learning matcher on expertise evidence, proven peer outcomes, specialty, and availability. You see clear reasons for every match ("relevant SGLT2 publication history," "strong prior peer outcomes (5 helpful connections)," "verified Endocrinology"), pick one, and send a privacy-checked question. Contact details are revealed only after both sides agree.
 
 ### 2. See who practices like you
 
@@ -49,13 +52,135 @@ When a drug you prescribe changes — a reformulation, a swapped component, a ne
 
 ## How the intelligence works
 
-Relay's matching runs on data, and its intelligence is graph plus machine learning that is deterministic and reproducible:
+All of Relay's models are deterministic and reproducible. Given the same data and seed, they produce the same result, and they run fully offline.
 
-- **Prescribing-domain clustering** groups doctors by their drug and prescribing vectors, so peers are matched on how they actually practice.
-- **Expertise-graph matching** traverses the network with evidence-weighted scoring, applying hard eligibility rules (verification, consent, availability) *before* ranking anyone.
-- **Trust learning** updates the graph from each consented, useful connection, so recommendations improve over time.
+### Clustering doctors by prescribing domain (`features/peer-clustering`)
 
-Generative AI (Gemini) sits on top as an **explanation layer only** — it turns already-approved facts into clear, readable summaries. It never decides who is eligible, ranks peers, or invents information, and every AI surface has a deterministic fallback, so Relay works even with no network connection.
+Each physician is represented as a **prescribing vector**: their share of prescriptions in each drug class (for example SGLT2 inhibitors, GLP-1 receptor agonists, DPP-4 inhibitors, basal insulin, metformin and other oral drugs).
+
+- **k-means with k-means++ seeding** (default `k = 3`, seed `42`, up to 50 iterations) groups the vectors into prescribing domains. Profiles are sorted by ID and a seeded Mulberry32 random number generator picks the starting centroids, so the clusters are the same on every run.
+- Each cluster is labelled from its dominant drug classes, meaning classes with at least a 15% share of the centroid, for example *"GLP-1 receptor agonists & SGLT2 inhibitors domain"*.
+- **Domain peers** are the other members of your cluster, ranked by cosine similarity to your vector.
+- **Similar prescribers** answers "who prescribes *this* drug like I do?" It returns peers whose share of one drug class is within ±6 percentage points of yours.
+- Before any peer's identity is shown, the policy engine must confirm that the peer is verified and has an active `PEER_MATCHING` consent. Clustering describes practice patterns only. It never claims expertise, quality, adherence, or treatment appropriateness.
+
+### Ranking peers with reinforcement learning (`features/network-graph`)
+
+Doctor Connect models peer matching as a **contextual multi-armed bandit**, the single-step form of reinforcement learning. It fits this problem because each connection is an independent decision with immediate feedback. A full sequential MDP would add complexity and hidden state without adding any benefit.
+
+| RL concept | In Relay |
+|---|---|
+| **Context** | The physician's request, reduced to topic tags (drug class, condition, help mode), plus each candidate's expertise evidence |
+| **Arms (actions)** | The eligible peers who could be recommended |
+| **Reward** | Consented post-connection feedback: *useful* `yes = 1.0`, `somewhat = 0.5`, `no = 0.0` |
+| **Belief** | A Beta posterior over usefulness for each (expert, topic) pair, built from success and interaction counts |
+
+**The matching funnel.** Every stage is a hard filter, and the bandit runs only at the end:
+
+```text
+1. Specialty pool
+2. Expertise evidence ≥ 0.30 on a requested topic   (so a job title alone never qualifies)
+3. Opted into peer support for the requested help mode
+4. Verified + active matching consent + available      (enforced by the policy engine)
+5. Contextual-bandit ranking of the survivors
+```
+
+Because the bandit only reorders peers who already passed all four filters, exploration can never surface an ineligible peer.
+
+**Scoring.** Each eligible peer receives a peer-fit score:
+
+```text
+score = 0.50 × expertise evidence
+      + 0.30 × bandit trust estimate
+      + 0.10 × specialty fit
+      + 0.10 × availability fit
+```
+
+- **Expertise evidence** comes from independent sources that reinforce each other: `strength = 1 − Π(1 − wₛ)`. The source weights are publication 0.50, self-declared 0.40, Impiricus signal 0.35, specialty 0.30, and synthetic 0.30. Expertise backed by more than one source therefore outranks a single self-declaration.
+- **Bandit trust estimate.** Two exploration policies share the same posterior:
+  - **UCB (default, deterministic):** `trust = mean + c · √(ln(N + 1) / (nᵢ + 1))`, with `c = 0.15`. `mean` is the peer's observed success rate on the topic, `nᵢ` is their number of interactions on it, and `N` is the total interactions across eligible peers. Proven experts are exploited, while under-connected peers get a small exploration bonus that shrinks as evidence builds up. Without this bonus, isolated physicians would never become visible.
+  - **Thompson sampling (seeded):** `θ ~ Beta(1 + successes, 1 + failures)`, sampled with a seeded random number generator and a Marsaglia–Tsang gamma sampler, so exploration is random yet reproducible.
+- The trust term is clamped to `[0, 1]` and weighted at only 0.30. Exploration therefore breaks ties between comparable peers but never overrides real expertise. A peer surfaced by exploration is labelled honestly in the UI (*"Exploring"*, *"Newer peer — surfaced to grow the network"*).
+
+**The learning step.** `recordConnectionOutcome` updates the posterior. Feedback of `yes` or `somewhat` counts as a success, and `no` counts as a failure. The function creates or strengthens the `(requester → expert, topic)` trust edge and keeps a running average of usefulness. It is a pure function that stores only counts, scores, topic IDs, and a timestamp, with no patient data and no message content. The next time someone asks about that topic, the updated posterior changes the ranking: each successful connection improves the next match.
+
+> **Status:** Bandit ranking (UCB) is live in Doctor Connect. The learning update and the positive-feedback loop are implemented and covered by tests. Capturing the *"Was this useful?"* feedback in the live UI and writing it back into the trust graph is still planned. Thompson sampling is implemented and tested but is not yet exposed in the UI.
+
+### Where generative AI fits
+
+Generative AI (Gemini) is limited to an **explanation layer**. It may turn facts that were already approved into readable summaries. It never decides who is eligible, ranks peers, reviews messages for privacy, or invents information. Every AI surface has a deterministic fallback, so Relay also works with no network connection.
+
+## Privacy and security layer: keeping patient information out of Doctor Connect
+
+Doctor Connect lets physicians ask peers for help with real clinical situations. That is where patient information is most likely to slip in, so the whole flow is designed around one rule: **only general, non-identifying clinical-practice context may leave the author's browser form.** The approach follows HIPAA's *minimum necessary* principle and uses the HHS Safe Harbor list of identifiers as the checklist for what to block.
+
+### 1. No open chat
+
+Doctor Connect is **not a chat**. Removing free-form surfaces removes most of the places where patient information could appear:
+
+- The requester fills in **four separate short fields**, each with its own length limit: topic (120 characters), medication or therapy (100), age or age group (40), and general condition context (120). Relay assembles them into one question: *"How do peers approach [topic] for [therapy] in [age group] patients with [condition]?"*
+- The responder writes **one answer of up to 700 characters**. Optional labelled lines (Approach, Monitoring, Escalation, Additional context) help structure it.
+- There is one answer per accepted request, with **no reply thread, no attachments or images, no patient-narrative box, and no exact-dose fields**.
+
+### 2. Deterministic identifier scan (`features/doctor-connect`)
+
+Nothing is checked or rewritten while the physician types. When the physician selects **Check privacy & safety**, each field is scanned separately by a versioned rule set (`connect-guardrails-v2`). The rules map to the HIPAA Safe Harbor identifiers:
+
+| Safe Harbor identifier | What Relay detects |
+|---|---|
+| Names | Patient/person introductions (*"my patient Bob"*, *"patient named…"*), titles (*Mr./Mrs./Dr.*), initials (*"Patient J.D."*), family relations, possessives (*"Bob's renal impairment"*), names before clinical verbs (*"Maria has CKD"*), and trailing names (*"renal impairment for Bob"*) |
+| Geographic units smaller than a state | Street addresses, P.O. boxes, ZIP/postal codes, *"lives at / works on…"* |
+| Dates | Numeric, ISO, and written-month dates, date of birth, birth year |
+| Ages over 89 | Generalized to *Adults 90+* (see below) |
+| Phone and fax numbers | Formatted and unformatted US numbers, *"phone / cell / fax #"* |
+| Email addresses | Standard and lightly disguised (*"name at domain dot com"*) |
+| Social Security numbers | `###-##-####` and *"SSN …"* |
+| Medical record, health plan, and account numbers | MRN, chart, account, member, claim, case, policy, encounter, insurance/subscriber/beneficiary/group IDs |
+| Certificate and license numbers | Driver's license and passport numbers |
+| URLs and IP addresses | Web links, social handles, IPv4 addresses |
+| Photos and biometrics | Not possible to send: Doctor Connect has no attachment or image upload |
+
+### 3. Age is generalized, not deleted
+
+An exact age such as `72` is useful clinical context but can also help identify someone. When it is entered in the age field, the review step converts it to a coarse range: *under 18*, *18–39*, *40–64*, *65–89*, or *90+*. The confirmation screen shows the physician both values (*Entered: 72 → Adults 65–89*), and only the range is stored. An exact age written in any other field (*"a 72-year-old…"*) blocks the question instead.
+
+### 4. Flagged text is blocked, never silently redacted
+
+If the scan finds a likely identifier, Relay names the problem (for example *"patient or named-person reference"*) and shows a **redacted preview** (`[name removed]`, `[phone removed]`…). It then **blocks the message until the physician edits the field and runs the check again**. Relay never quietly sends a redacted version, because automatic rewriting could change the clinical meaning without the physician noticing. Any edit after a passing check invalidates it, so the check has to run again.
+
+### 5. Safety-event stop path
+
+Phrases such as *"adverse event"*, *"suspected safety event"*, *"product complaint"*, or *"patient died"* stop the workflow and are recorded in the audit trail. Those cases belong in pharmacovigilance reporting, not in peer matching.
+
+### 6. Exact preview and explicit confirmation
+
+Both sides see **exactly** what will be sent before sending. The requester reviews the assembled question and all four field values. The responder ticks: *"I reviewed this exact answer, confirm it contains no patient-identifying information, and want to send it as my professional experience."* Sending stays disabled until the physician confirms.
+
+### 7. Validation repeated at the storage boundary
+
+The UI is not the only protection. `prepareQuestionSelection` and `prepareAnswerText` run the full scan again when a consult is stored, and throw an error if anything fails. As a result, text that failed the check can never reach consult storage, even if the UI is bypassed. Stored consults record the taxonomy and guardrail versions that approved them.
+
+### 8. Temporary drafts are cleared
+
+After sending, the temporary draft, the scan results, and the redacted previews are cleared from the form. Only the approved question or answer is kept, because the other physician needs it. A version that failed the check is never kept.
+
+### 9. Consent, policy, and audit around the conversation
+
+- **Identity:** A peer appears in matches or clusters only if the deterministic policy engine (`packages/policy-engine`) confirms they are verified, have an active `PEER_MATCHING` consent, and are available.
+- **Contact details:** A peer's email is shown only when **both** physicians have approved contact (`PEER_CONTACT`). The policy engine checks this again every time the contact details are requested.
+- **Data minimization:** Every read passes through the purpose-aware data broker (`packages/data-broker`). No store holds patient-level data. The bandit sees only counts, posteriors, and topic IDs. Topic tags are derived internally for matching and are never shown as physician-entered text.
+- **Audit:** Every policy decision creates an append-only audit event stamped with the policy version. Audit summaries refer to requests by ID only and **never include question or answer text**.
+- **Physician identity:** The acting physician is always taken from the signed-in session. There is no profile switcher and no way to impersonate another physician through URL parameters.
+
+### What this does and does not guarantee
+
+This layer **greatly reduces** the risk of physicians sharing protected health information. It is not, on its own, a HIPAA compliance certification. Pattern rules can miss unusual phrasings, and a combination of ordinary facts can still identify a patient in a small practice or with a rare condition. The live build at <https://relay-hackgt13.vercel.app> is a static front end with no backend: these checks run in the browser, and consults are kept in browser-local storage. Using Relay for real patient conversations would also require:
+
+- the same validation enforced on an authenticated server;
+- a reviewed contextual classifier or a human-review path for uncertain cases (this would receive one locally redacted field at a time and could never override a deterministic block);
+- Business Associate Agreements, retention, and vendor data-use terms;
+- monitoring and incident response;
+- a formal privacy, security, and clinical review.
 
 ## Where doctor data is stored
 
@@ -135,8 +260,8 @@ apps/
   web/                       browser application and feature UI
   api/                       reserved for the future HTTP composition root
 features/
-  network-graph/             expertise + trust graph matching and learning loop
-  peer-clustering/           prescribing-domain clustering and peer suggestions
+  network-graph/             contextual-bandit (RL) peer ranking over the expertise + trust graph
+  peer-clustering/           k-means prescribing-domain clustering and peer suggestions
   practice-mirror/           cohort comparison computation and use cases
   doctor-connect/            taxonomy, eligibility, ranking, and request states
   ledger/                    reviewed product-version comparison and update use cases
