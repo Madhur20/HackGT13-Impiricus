@@ -4,6 +4,30 @@ This file records durable decisions. New entries should include a date, status, 
 
 ## Accepted baseline decisions
 
+### 2026-09-26 — Relay Network Graph is the learning matching substrate for Doctor Connect
+
+- **Status:** Accepted
+- **Decision:** Add an expertise graph and a trust graph as a distinct computation (`@relay/network-graph`) that backs Doctor Connect peer matching. Expertise edges carry evidence sources (`SELF_DECLARED`, `SPECIALTY`, `PUBLICATION`, `IMPIRICUS_SIGNAL`, `SYNTHETIC`) and a derived strength; trust edges are created and reinforced only from post-connection feedback. Matching is a deterministic funnel (specialty → expertise floor → peer-support opt-in/help mode → verified + matching consent + availability → expertise/trust ranking → best match or honest no-match), and the graph improves as connections are validated.
+- **Reason:** Isolated community, rural, and independent physicians need routing to the right peer, not a flat directory. A learning expertise/trust graph is a durable, defensible matching advantage while reusing consent, policy, provenance, and audit.
+- **Boundaries:** Expertise evidence and validated trust drive ranking — never prescribing volume or NPI alone; hard filters precede ranking; zero patient data and no off-platform content in trust or feedback; structured categorical intent only in the hackathon, with any future Gemini intent extraction requiring a deterministic fallback and holding no eligibility or final-peer authority; NPI is identity, not credentialing.
+- **Affected:** `packages/domain`, new `features/network-graph`, `docs/network-graph-plan.md`, `org/` context/decisions/status, and future `demo-seed` data, data-broker reads, Doctor Connect UI, and audit events.
+
+### 2026-09-26 — Network Graph ranking is a contextual bandit (reinforcement learning)
+
+- **Status:** Accepted
+- **Decision:** Rank eligible peers with a contextual multi-armed bandit instead of a fixed trust average. Context is the request plus each peer's expertise evidence; actions are the eligible peers; reward is consented post-connection feedback (`yes = 1.0`, `somewhat = 0.5`, `no = 0.0`) maintained as a Beta posterior per (expert, topic) via `recordConnectionOutcome`. The default policy is deterministic **UCB** (`mean + 0.15 * sqrt(ln(N+1)/(nᵢ+1))`, clamped to `[0,1]`, bonus `0` when there is no feedback yet); **Thompson sampling** (seeded Mulberry32 + Marsaglia–Tsang gamma to draw `Beta(1+successes, 1+failures)`) is an optional reproducible stochastic policy. The trust estimate keeps the 0.30 weight in the blended score.
+- **Reason:** The real problem is exploit-vs-explore: reward proven experts while still giving promising, under-connected peers visibility so isolated physicians are not permanently starved. A single-step contextual bandit models this precisely; a deep sequential MDP would add brittle, unverifiable state for no benefit given independent one-shot connections with immediate feedback.
+- **Boundaries:** All hard eligibility filters run strictly before the bandit, so exploration can never surface an ineligible peer; the trust estimate is clamped and bounded to its 0.30 weight so exploration is a tie-breaker, not an override of expertise; UCB is the deterministic fallback required by the AI boundary; the bandit reads only counts, posteriors, and topic IDs — never patient data.
+- **Affected:** `features/network-graph` (matcher, tests), `docs/network-graph-plan.md`, `org/CONTEXT.md`, `org/STATUS.md`.
+
+### 2026-09-26 — Peer domain clustering is a deterministic, descriptive computation
+
+- **Status:** Accepted
+- **Decision:** Add peer domain clustering as a separate named computation in `@relay/peer-clustering`. It groups physicians by their synthetic prescribing mix using a deterministic, seeded k-means (implemented in TypeScript, offline, reproducible) and suggests co-clustered peers. Prescribing vectors are read through the data broker under `AGGREGATE_ANALYTICS`, and every peer suggestion is gated by an active `PEER_MATCHING` grant. Any future Gemini use only phrases the deterministic result and must keep the deterministic output as its fallback.
+- **Reason:** The team needs an "AI/ML" grouping that suggests which doctors fall in a physician's domain, while preserving offline determinism, the shared broker/policy pipeline, and the invariant that each product keeps a distinct named computation.
+- **Boundary:** Clustering is descriptive prescribing-domain overlap only. It does not claim expertise, quality, adherence, indication, or treatment appropriateness, and it does not replace Doctor Connect's hard eligibility filters or transparent weighted ranking. Prescribing signals may describe a domain but cannot stand in for expertise in Connect ranking.
+- **Affected:** `packages/domain`, `packages/demo-seed`, `packages/data-broker`, `packages/relay-core`, the new `features/peer-clustering`, tests, and the future Doctor Connect / discovery UI.
+
 ### 2026-09-26 — Browser-first TypeScript prototype stack
 
 - **Status:** Accepted

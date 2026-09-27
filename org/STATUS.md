@@ -7,9 +7,9 @@ Last updated: 2026-09-26.
 - **Stage:** Functional browser-first hackathon prototype.
 - **Repository contents:** Product/system plans, maintained context, contribution guidance, module boundaries, and a TypeScript workspace.
 - **Application code:** React/Vite web shell with Home, Practice Mirror, Doctor Connect, physician-facing Ledger Updates, and a shared Audit view.
-- **Tests:** Eleven deterministic tests across cohort comparison, matching, policy, data-broker, update filtering/personalization, specialist eligibility, and legacy schema-diff behavior.
-- **Demo readiness:** Core click paths work from synthetic seed data and the production bundle builds. The shared shell and Updates page pass headless Chrome desktop review; narrow-width capture informed mobile overflow defenses, while hands-on mobile interaction QA remains open.
-- **Data:** Thirty-six synthetic HCP profiles, prescribing fixtures, three reviewed medicine-update fixtures, consent failure cases, and a fictional versioned policy. Unused legacy client-scope fixtures remain technical cleanup.
+- **Tests:** Deterministic tests across cohort comparison, matching, policy, data-broker (including update filtering/personalization and specialist eligibility), semantic-diff, peer domain clustering/discovery, and Network Graph expertise/trust matching, contextual-bandit ranking (UCB determinism/exploration, seeded Thompson reproducibility, eligibility), and learning behavior (validated on synthetic graph fixtures).
+- **Demo readiness:** Core click paths work from synthetic seed data and the production bundle builds. The redesigned physician screens (shared shell, Practice Mirror with peer discovery, Doctor Connect, Updates) pass headless Chrome desktop review; hands-on mobile interaction QA remains open.
+- **Data:** Thirty-six synthetic HCP profiles, prescribing fixtures, per-physician prescribing vectors and persona-specific Mirror data, Network Graph fixtures (expertise tags/edges, peer-help profiles, seeded trust edges), three reviewed medicine-update fixtures, consent failure cases, and a fictional versioned policy.
 - **Deployment:** Local Vite build only; no hosted deployment or backend is configured.
 
 Plans remain broader than the prototype. Do not infer production integrations, legal approval, real credentialing, or durable storage from the working UI.
@@ -59,6 +59,48 @@ The next demo-hardening milestone is complete when:
 - **Verified:** `npm run check` passes TypeScript validation, ten tests, and the production build. Headless Chrome desktop and narrow-width captures were reviewed; mobile heading wrapping and overflow defenses were corrected.
 - **Open:** Hands-on touch QA, browser interaction automation, real editorial assets, and replacement of unused legacy schema-diff scaffolding remain open.
 - **Next:** Add an end-to-end Updates selection and Doctor Connect handoff test, then exercise the complete demo on a physical phone.
+
+### 2026-09-26 — Contextual bandit ranking (RL step 2)
+
+- **Changed:** Replaced the trust-average in `@relay/network-graph` with a contextual multi-armed bandit. Context is the request plus each peer's expertise evidence; reward is consented feedback (`yes`/`somewhat`/`no` → `1.0`/`0.5`/`0.0`) kept as a Beta posterior per (expert, topic). Added a deterministic **UCB** policy (default, exploration bonus shrinks with evidence and is `0` with no feedback yet) and a seeded **Thompson sampling** policy (Mulberry32 PRNG + Marsaglia–Tsang gamma to draw `Beta(1+successes, 1+failures)`), both clamped to the 0.30 trust weight. Hard eligibility filters still run strictly before the bandit. `matchPeers` now accepts `policy`, `seed`, and `explorationC`. Documented in `docs/network-graph-plan.md` (new §6.5), `org/DECISIONS.md`, and `org/CONTEXT.md`.
+- **Verified:** `npm run check` passes TypeScript validation, 28 tests (3 new bandit tests), and the production build. New tests cover UCB determinism plus exploration of an unproven eligible peer (validated expert still outranks it), Thompson reproducibility for a fixed seed within `[0,1]`, and hard-filter enforcement under both policies. All prior Network Graph tests still pass unchanged.
+- **Open:** Not yet wired to the UI or audit; UI does not yet let a user toggle policy or visualize exploration. Weights and exploration constant (`c = 0.15`) are configuration assumptions, not tuned.
+- **Next:** Wire matching + feedback into the Doctor Connect UI and audit timeline, and optionally surface the funnel and an "exploration" badge in the demo.
+
+### 2026-09-26 — Synthetic Network Graph data + validation (RL step 1: data first)
+
+- **Changed:** Added synthetic Network Graph fixtures to `demo-seed` derived from the existing physicians and their prescribing history: 16 expertise tags (drug classes, conditions, topics, affiliations), evidence-bearing `expertiseEdges` (prescribing → `IMPIRICUS_SIGNAL`, declared corroboration, periodic `PUBLICATION` standouts), `peerHelpProfiles` (offered tags, help modes, opt-in), and seeded `trustEdges` for a few validated experts. Added a governed `readNetworkGraph` broker read (`PEER_MATCHING`, returns fresh copies) re-exported from `relay-core`.
+- **Verified:** `npm run check` passes TypeScript validation, 25 tests (2 new), and the production build. New tests run `matchPeers` on the synthetic data (validated expert ranks first for an SGLT2 + renal need; all matches eligible; funnel narrows) and confirm the learning flywheel raises a peer's score after positive feedback. The new `demo-seed`/broker code is now covered by `tsc -b`.
+- **Open:** Trust is still a feedback-weighted average, not yet the chosen contextual bandit. Not wired to the UI or audit yet.
+- **Next (RL step 2):** Replace the trust-average with a contextual bandit — Thompson sampling with a deterministic UCB fallback — update `docs/network-graph-plan.md` and `org/DECISIONS.md`, and test the RL policy (exploration/exploitation, reproducibility) on this synthetic data.
+
+### 2026-09-26 — User-facing README rewrite
+
+- **Changed:** Rewrote `README.md` as a firm, user-facing product overview: leads with the underserved-doctor problem, contrasts with headline/LinkedIn matching, positions Relay as a continuously learning matcher on prescribing/drug/region history and validated peer outcomes, describes the three physician actions (find a peer, see who practices like you, discuss medicine changes via Ledger with a "how do we incorporate this change into our workflow" message to specialists), and states the data-storage model (synthetic in-memory today; MongoDB + Neo4j behind the broker in production). Removed the self-questioning "Is this AI orchestration?" section per request.
+- **Verified:** Documentation-only; no code changed. Links and section references checked against the repo.
+- **Open:** None specific to the README.
+- **Next:** Generate synthetic Network Graph data and validate the matching + learning logic on it.
+
+### 2026-09-26 — Relay Network Graph documented and backend logic added
+
+- **Changed:** Added the Network Graph as the learning matching substrate for Doctor Connect. Wrote `docs/network-graph-plan.md`; updated `org/CONTEXT.md` (new section, derived profile, computations, collections, scope, acceptance criteria), `org/DECISIONS.md` (accepted decision), `org/README.md` (source list), and `docs/doctor-connect-plan.md` (forward reference). Added domain types (expertise tags/edges, help profiles, trust edges, need, match/funnel/result) and a new `@relay/network-graph` feature implementing evidence-combined expertise strength, a deterministic hard-filter-then-rank matching funnel, trust aggregation with saturation, and `recordConnectionOutcome` for the learning loop.
+- **Verified:** `npm run check` passes TypeScript validation, 23 tests (5 new), and the production build. Tests cover evidence combination, funnel filter order, honest no-match, trust-edge creation/reinforcement/averaging, and the flywheel (positive feedback raises a peer's match score).
+- **Open:** Not yet wired to synthetic seed data, the data broker, the UI, or audit events; no Gemini intent extraction (structured categorical need only). The feature is exercised by its own tests but is not yet typechecked by `tsc -b` because no app imports it.
+- **Next:** Generate synthetic Network Graph data (expertise tags/edges, help profiles, seed trust edges), add governed broker reads, and validate the matching + learning logic on that data; then wire the Doctor Connect UI and audit events.
+
+### 2026-09-26 — Peer domain discovery wired into Practice Mirror (step 2)
+
+- **Changed:** Added `suggestSimilarPrescribers` (peers with a similar share for one selected drug class) alongside the existing domain clustering, and wired a "Physicians who prescribe like you" panel into Practice Mirror. It offers two views — "Similar on {selected drug}" and "Your overall domain" (the physician's cluster) — behind an explicit reveal that logs a `PEER_MATCHING` audit event. Peer identity is surfaced only for opted-in physicians and each card hands off to Doctor Connect for contact under mutual consent. Reconciled the personas' clustering vectors with their Practice Mirror class shares so displayed values agree (Maya = GLP-1-led, SGLT2 18%).
+- **Verified:** `npm run check` passes TypeScript validation, 18 tests (2 new for `suggestSimilarPrescribers`), and the production build. Verified live in the in-IDE browser: reveal action, both tabs, consent-gated cards, consistent shares, and correct domain labels.
+- **Open:** No Gemini phrasing yet (deterministic labels only). Jordan's Mirror comparison still reuses Maya's hardcoded `mirrorClasses` chart values (pre-existing simplification); only the peer "your share" is persona-accurate.
+- **Next:** Optionally mirror the same discovery affordance inside Doctor Connect, and add a browser test for the Mirror peer-discovery reveal and tab switch.
+
+### 2026-09-26 — Peer domain clustering (AI/ML backend, step 1)
+
+- **Changed:** Added `@relay/peer-clustering`, a deterministic seeded k-means over synthetic per-physician prescribing vectors, plus `suggestDomainPeers` for "doctors in your domain" suggestions. Added clustering domain types, 38 synthetic prescribing profiles (36 HCPs + 2 personas across three latent domains) in `demo-seed`, and a governed `readClusteringDataset` broker read (`AGGREGATE_ANALYTICS`) re-exported from `relay-core`. Peer suggestions are gated by `PEER_MATCHING` consent.
+- **Verified:** `npm run check` passes TypeScript validation, 16 tests (6 new), and the production build. Tests cover determinism, full k-partition, latent-domain recovery, consent gating, similarity ordering, and consent-revocation exclusion.
+- **Open:** No UI is wired to the clustering output yet, and Gemini phrasing of domain labels is not implemented (deterministic labels only). Clustering is descriptive and must not be presented as expertise, quality, or a Connect ranking substitute.
+- **Next:** Wire a "peers in your domain" view onto the clustering output (reusing the data broker), then optionally add Gemini phrasing with the deterministic label as fallback.
 
 ### 2026-09-26 — HCP Ledger Updates view
 

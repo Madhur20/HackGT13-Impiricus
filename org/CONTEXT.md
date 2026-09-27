@@ -31,7 +31,7 @@ The hackathon prototype must prove direct HCP value, visible consent effects, ev
 | P0 | Doctor Connect | Structured question, hard eligibility filters, transparent ranking, request/response flow, and mutual contact consent |
 | P1 | Practice Mirror | One defensible cohort comparison with visible limits and no quality claim |
 | P1 | Ledger | One reviewed before/after drug-product update with relevance reasons, four specialist options, and a governed Connect handoff |
-| P2 | Extensions | Reusable answers, DocUpdate targeting, and scheduled policy re-evaluation |
+| P2 | Extensions | Network Graph learning matcher (expertise + trust), reusable answers, DocUpdate targeting, and scheduled policy re-evaluation |
 
 If time collapses, preserve one polished Doctor Connect path plus one compact, working path for Mirror and Ledger. The demo uses prepared synthetic data and must work without a network connection.
 
@@ -43,7 +43,7 @@ An HCP profile has four separate areas:
 
 - Public profile: display name, NPI, taxonomy/specialty, and state.
 - Declared profile: therapeutic areas, experience tags, languages, and availability.
-- Derived profile: named engagement features and class-level prescribing statistics.
+- Derived profile: named engagement features, class-level prescribing statistics, expertise-graph tags with evidence, and validated peer-trust signals.
 - Verification: NPI match and credential status. Credential status is synthetic in the prototype; NPI issuance does not prove licensure.
 
 ### Field provenance
@@ -89,12 +89,13 @@ The product computations stay separate:
 ```ts
 computeCohortComparison(...) // median and quartiles for Mirror
 rankEligiblePeers(...)       // filtered weighted scoring for Connect
+matchNetworkPeers(...)       // expertise + trust graph contextual-bandit ranking for Connect
 compareReviewedVersions(...) // normalized before/after product-version comparison for Ledger
 ```
 
 All feature reads pass through a data broker that accepts actor, subject, purpose, recipient, and requested fields. It calls the policy service and returns only allowed data. Feature code must not read restricted profiles or consent collections directly.
 
-Suggested MongoDB collections are `hcp_profiles`, `field_provenance`, `consent_grants`, `question_taxonomy`, `consult_requests`, `structured_answers`, `reviewed_product_changes`, `policy_rules`, and `audit_events`.
+Suggested MongoDB collections are `hcp_profiles`, `field_provenance`, `consent_grants`, `question_taxonomy`, `consult_requests`, `structured_answers`, `reviewed_product_changes`, `policy_rules`, `audit_events`, and the Network Graph collections `expertise_tags`, `expertise_edges`, `peer_help_profiles`, `trust_edges`, and `connection_feedback`.
 
 ## Deterministic policy service
 
@@ -155,6 +156,21 @@ One demo selection must trigger a fictional pharmacovigilance safety stop. Do no
 
 Core endpoints include taxonomy, preview, answer search, request creation, matches, peer selection/decision, structured answer, contact consent/retrieval, and report.
 
+## Relay Network Graph (expertise and trust)
+
+The Network Graph is the learning substrate under Doctor Connect matching. It models physicians as a graph of expertise and validated peer help rather than a flat directory, so Relay can route an isolated physician to the right peer for a specific problem. It reuses the shared consent, policy, provenance, explanation, and audit foundation; it does not add a second consent model. See `docs/network-graph-plan.md` for the detailed plan.
+
+Two graphs answer two questions:
+
+- **Expertise Graph — "who knows what."** `EXPERTISE_IN` edges connect a physician to typed tags (`specialty`, `condition`, `drug_class`, `topic`, `skill`, `affiliation`). Each edge carries evidence sources (`SELF_DECLARED`, `SPECIALTY`, `PUBLICATION`, `IMPIRICUS_SIGNAL`, `SYNTHETIC`) and a derived strength in [0, 1] that rises as independent sources corroborate it.
+- **Trust Graph — "who has successfully helped whom."** A `SUCCESSFUL_PEER_CONNECTION` edge from requester to expert, scoped to a topic, is created or reinforced only from post-connection feedback. It stores interaction and success counts, a usefulness average, and a timestamp — never patient data or off-platform content.
+
+Matching is a deterministic funnel that keeps Doctor Connect's rule that hard filters precede ranking: specialty pool → required-expertise match above an evidence floor → peer-support opt-in and requested help mode → verified + active matching consent + availability (policy engine) → contextual-bandit ranking → strongest matches, or an honest no-match. Ranking weights expertise evidence and validated trust; prescribing volume and NPI alone never substitute for expertise.
+
+Ranking over the eligible set is a **contextual bandit (reinforcement learning)**: the request plus each peer's expertise evidence is the context, the eligible peers are the actions, and consented feedback (`yes`/`somewhat`/`no` → `1.0`/`0.5`/`0.0`) is the reward, kept as a Beta posterior per (expert, topic). The default policy is deterministic **UCB** (exploit proven experts, add a shrinking exploration bonus so promising under-connected peers still surface; bonus is `0` with no feedback yet, keeping the demo reproducible); optional seeded **Thompson sampling** is the stochastic variant. All hard filters run before the bandit, and the trust estimate stays clamped to its bounded weight so exploration never surfaces an ineligible peer or overrides real expertise.
+
+The graph learns: every completed, consented connection produces structured feedback (useful? outcome?) that updates the Trust Graph posterior, so later matches improve (better graph → better matches → more useful connections → more feedback). The hackathon uses structured categorical need selection; any future Gemini intent extraction is explanation-only, needs a deterministic fallback, and cannot decide eligibility or the final peer. The graph stores zero patient data.
+
 ## Ledger
 
 Ledger is a physician-facing medicine-change explorer, shown in navigation as **Updates**. A reviewed update names the synthetic company and product, shows the previous and current versions, states the concrete change (for example, component X was replaced by component Y), and explains why the physician is seeing it.
@@ -213,6 +229,7 @@ The strongest proof of shared infrastructure is the common audit timeline with o
 - Every displayed data point has a provenance label.
 - Every policy decision creates an audit event.
 - Restricted fields cannot leak into explanations.
+- Network Graph matching applies hard filters before the contextual-bandit ranking, ranks on expertise and validated trust (bandit reward) rather than prescribing volume or NPI alone, keeps a deterministic UCB fallback so exploration never surfaces an ineligible peer, updates the trust posterior only from consented post-connection feedback, and stores no patient data.
 - The seeded demo and explanation fallbacks work offline.
 
 ## Production questions requiring Impiricus review

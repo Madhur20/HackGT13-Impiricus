@@ -135,3 +135,147 @@ export type SchemaDiff = {
   before?: AllowedField;
   after?: AllowedField;
 };
+
+// --- Peer domain clustering (descriptive unsupervised grouping) ---
+// These types support grouping physicians by their prescribing mix so a
+// physician can see peers who practice in a similar domain. This is a
+// DESCRIPTIVE overlap signal only. It does not measure expertise, quality,
+// adherence, or treatment appropriateness, and it does not replace Doctor
+// Connect's hard eligibility filters or transparent ranking.
+
+export type DrugClassId = "sglt2" | "glp1" | "dpp4" | "basal" | "metformin";
+
+export type DrugClassRef = {
+  classId: DrugClassId;
+  classLabel: string;
+};
+
+export type PrescribingProfile = {
+  hcpId: string;
+  specialty: string;
+  state: string;
+  year: number;
+  // Fraction of the physician's tracked claims in each drug class. Values are
+  // non-negative and sum to approximately 1 across the tracked classes.
+  classShares: Record<DrugClassId, number>;
+  totalClaims: number;
+};
+
+export type DomainCluster = {
+  id: string;
+  label: string;
+  dominantClasses: { classId: DrugClassId; classLabel: string; share: number }[];
+  centroid: Record<DrugClassId, number>;
+  memberIds: string[];
+  size: number;
+};
+
+export type ClusterAssignment = {
+  hcpId: string;
+  clusterId: string;
+  distanceToCentroid: number;
+};
+
+export type DomainClusteringResult = {
+  clusters: DomainCluster[];
+  assignments: ClusterAssignment[];
+  featureClasses: DrugClassRef[];
+  iterations: number;
+  seed: number;
+};
+
+export type DomainPeerSuggestion = {
+  profile: HcpProfile;
+  similarity: number;
+  clusterId: string;
+  clusterLabel: string;
+  sharedDomainClasses: string[];
+  reasons: string[];
+};
+
+export type SimilarPrescriberSuggestion = {
+  profile: HcpProfile;
+  classId: DrugClassId;
+  classLabel: string;
+  subjectShare: number;
+  peerShare: number;
+  shareDifference: number;
+  similarity: number;
+  reasons: string[];
+};
+
+// --- Relay Network Graph (expertise + trust matching substrate) ---
+// Models physicians as a graph of expertise ("who knows what") and validated
+// peer help ("who has successfully helped whom") to route an isolated physician
+// to the right peer. It backs Doctor Connect matching, reuses the shared consent
+// and policy foundation, and stores no patient data. See docs/network-graph-plan.md.
+
+export type ExpertiseSource = "SELF_DECLARED" | "SPECIALTY" | "PUBLICATION" | "IMPIRICUS_SIGNAL" | "SYNTHETIC";
+
+export type ExpertiseTagKind = "specialty" | "condition" | "drug_class" | "topic" | "skill" | "affiliation";
+
+export type ExpertiseTag = {
+  id: string;
+  label: string;
+  kind: ExpertiseTagKind;
+};
+
+export type ExpertiseEdge = {
+  hcpId: string;
+  tagId: string;
+  sources: ExpertiseSource[];
+  // Derived from sources when omitted; combines evidence and caps at 1.
+  strength?: number;
+};
+
+export type HelpMode = "async_question" | "short_call" | "referral_guidance";
+
+export type PeerHelpProfile = {
+  hcpId: string;
+  offeredTagIds: string[];
+  helpModes: HelpMode[];
+  peerSupportOptIn: boolean;
+};
+
+export type TrustEdge = {
+  fromHcpId: string;
+  toHcpId: string;
+  tagId: string;
+  interactions: number;
+  successfulConnections: number;
+  usefulnessScore: number; // 0-1 running average
+  lastConnectedAt: string;
+};
+
+export type ConnectionOutcome = {
+  useful: "yes" | "somewhat" | "no";
+  resolution: "resolved" | "referral_needed" | "need_another_expert";
+};
+
+export type PeerNeed = {
+  specialty?: string;
+  expertiseTagIds: string[];
+  helpMode?: HelpMode;
+};
+
+export type NetworkMatch = {
+  profile: HcpProfile;
+  score: number;
+  expertiseScore: number;
+  trustScore: number;
+  trustConnections: number;
+  matchedTags: { tagId: string; label: string }[];
+  reasons: string[];
+};
+
+export type MatchFunnelStep = {
+  label: string;
+  count: number;
+};
+
+export type NetworkMatchResult = {
+  need: PeerNeed;
+  matches: NetworkMatch[];
+  funnel: MatchFunnelStep[];
+  noMatch: boolean;
+};

@@ -177,6 +177,10 @@ Before ranking, require a minimum evidence floor for the selected therapeutic ar
 
 Do not use prescribing volume alone as proof of expertise. Public claims are incomplete, may be suppressed, and may reflect factors unrelated to competence. Prefer HCP-declared experience, verified specialty, and consented Impiricus signals. If a public statistic contributes, disclose it and cap its weight.
 
+### Network Graph matching substrate
+
+The categorical weighted score above is the baseline matcher. Relay is also building a learning matching substrate — the Relay Network Graph — that models physicians as an expertise graph ("who knows what") and a trust graph ("who has successfully helped whom") and improves as connections are validated. It uses the same hard-filters-before-ranking rule, consent model, and audit foundation described here, and ranks on expertise evidence and validated peer trust rather than prescribing volume or NPI alone. See `network-graph-plan.md` for the model, funnel, learning loop, and boundaries.
+
 ### Explanation
 
 Expose no more than three reasons:
