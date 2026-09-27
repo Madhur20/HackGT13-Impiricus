@@ -18,6 +18,10 @@ export function StatusBadge({ children, tone }: { children: ReactNode; tone: "su
   return <span className={`status-badge ${tone}`}>{tone === "success" && <Check size={12} />}{children}</span>;
 }
 
+export function DemoNotice() {
+  return <div className="demo-notice"><Sparkles size={16} /><span><strong>Demo</strong> · Synthetic data only</span></div>;
+}
+
 export function LockedValue({ revealed, value }: { revealed: boolean; value?: string }) {
   return <div className={revealed ? "locked-value revealed" : "locked-value"}><LockKeyhole size={18} />{revealed ? (value ?? "Approved email is unavailable") : "Contact details remain hidden"}</div>;
 }

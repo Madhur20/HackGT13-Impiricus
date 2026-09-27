@@ -36,3 +36,12 @@ export function App() {
 
   return <ProductRoutes actorId={auth.hcpId} />;
 }
+
+export function App() {
+  const auth = useAccountAuth();
+
+  if (!auth.isAuthenticated) return <AuthPage />;
+  if (!auth.hcpId || !personas.some((item) => item.id === auth.hcpId)) return <AuthPage />;
+
+  return <ProductRoutes actorId={auth.hcpId} />;
+}

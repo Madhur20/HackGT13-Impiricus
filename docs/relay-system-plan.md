@@ -45,13 +45,13 @@ The submission is a synthetic prototype, not a clinical decision-support system.
 
 ## 3. Scope and priority
 
-| Priority | Product | Required proof |
-|---|---|---|
-| P0 | Shared foundation | Persona switching with distinct physician fixtures, consent/purpose evaluation, provenance labels, data broker, and audit events |
-| P0 | Doctor Connect | Structured question, hard eligibility filters, transparent ranking, request/response, and mutual contact consent |
-| P1 | Practice Mirror | One defensible cohort comparison with visible limitations and no quality claim |
-| P1 | Ledger / Updates | Reviewed before/after product update, relevance reasons, four specialist options, and governed Connect handoff |
-| P2 | Extensions | Reusable answers, real notification ingestion, editorial publishing workflow, and scheduled policy re-evaluation |
+| Priority | Product           | Required proof                                                                                                                   |
+| -------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| P0       | Shared foundation | Persona switching with distinct physician fixtures, consent/purpose evaluation, provenance labels, data broker, and audit events |
+| P0       | Doctor Connect    | Structured question, hard eligibility filters, transparent ranking, request/response, and mutual contact consent                 |
+| P1       | Practice Mirror   | One defensible cohort comparison with visible limitations and no quality claim                                                   |
+| P1       | Ledger / Updates  | Reviewed before/after product update, relevance reasons, four specialist options, and governed Connect handoff                   |
+| P2       | Extensions        | Reusable answers, real notification ingestion, editorial publishing workflow, and scheduled policy re-evaluation                 |
 
 If time collapses, preserve one polished Doctor Connect path plus one compact, working Mirror and Updates path.
 

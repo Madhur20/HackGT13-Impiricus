@@ -1,12 +1,70 @@
 # Relay
 
-Relay is a consent-aware decision layer for Impiricus. One governance foundation supports three products with separate computations:
+**Relay connects underserved doctors to the specialists who can actually help them — matched on real prescribing, drug, and regional history, and getting smarter with every connection.**
 
-- **Practice Mirror:** a private, descriptive comparison of public prescribing data with a defined peer cohort.
-- **Doctor Connect:** governed practice questions routed to eligible, opted-in peers.
-- **Ledger / Updates:** reviewed before/after medicine-product changes with four governed specialist options.
+## The problem
 
-The repository includes a working browser-first Relay product built with React, TypeScript, and Vite. The current local environment uses deterministic illustrative records and can run offline after dependencies are installed. Production source integrations and durable server persistence remain separate deployment work.
+Doctors at large academic hospitals already have a network. There is a cardiologist down the hall, an oncologist in the next department, a specialist they trained with, a colleague they can text when a case gets hard.
+
+Community, rural, and independent physicians do not have that. When they hit a difficult case, there is often no one to turn to. Their problem is not a lack of medical information — it is not knowing *which doctor to talk to*.
+
+Existing tools do not solve this. A directory or a LinkedIn-style profile matches on **headlines**: a title, a specialty label, a bio. That tells you someone is "a cardiologist." It does not tell you they actually treat what you are dealing with, prescribe what you prescribe, or have ever helped a physician in your situation.
+
+## What Relay does
+
+Relay is not a social network. There are no feeds, no followers, and no profiles to scroll. You tell Relay what you need, and it connects you to a peer who genuinely fits.
+
+Relay matches doctors on real signals, not headlines:
+
+- the **drugs and prescriptions** you and they actually use,
+- your **region** and practice setting,
+- **demonstrated expertise** — declared experience, specialty, and publications, and
+- **validated outcomes** — other physicians who found that peer genuinely helpful.
+
+So instead of returning "300 cardiologists," Relay finds the cardiologist who prescribes what you prescribe, treats what you treat, and has already helped physicians like you. Then, only when both doctors agree, it opens the connection.
+
+Relay does all of this using **zero patient data**.
+
+## It learns from every connection
+
+Relay is a continuously learning platform. At its center is the **Relay Network Graph** — a living map of *who knows what* and *who has successfully helped whom*.
+
+- **Who knows what.** Every physician is linked to the conditions, drug classes, topics, and skills they actually work in, backed by evidence (their prescribing history, declared experience, specialty, and publications). This is how Relay narrows a broad specialty down to the handful of doctors with real, relevant experience.
+- **Who has successfully helped whom.** After each connection, Relay asks two quick questions — *Was this useful? Did you get what you needed?* A useful answer strengthens a trusted link to that specialist on that topic. Relay comes to know not just who *claims* expertise, but who other doctors genuinely found helpful.
+- **The flywheel.** Every successful connection makes the graph richer, which makes the next match better, which produces more successful connections. The network gets smarter the more it is used.
+
+## Three things you can do in Relay
+
+### 1. Find the right peer
+
+Describe what you need — a drug class, a condition, the kind of help you want — and Relay routes you to eligible, opted-in specialists who fit on prescribing history, expertise, region, and proven peer outcomes. You see clear reasons for every match ("prescribes the same therapies you do," "relevant publication history," "highly rated by peers on this topic"), pick one, and connect only after both sides agree.
+
+### 2. See who practices like you
+
+Relay groups physicians by their real prescribing and drug history, so you can see the peers who practice the way you actually practice — not just those who share your job title. It also gives you a private, honest view of how your prescribing mix compares with a similar peer group, with no judgment and no quality scoring.
+
+### 3. Understand and discuss medicine changes (Ledger / Updates)
+
+When a drug you prescribe changes — a reformulation, a swapped component, a new excipient — Relay shows you **exactly what changed**, before and after, in plain language. Then it connects you with specialists who also prescribe that drug so you can ask the question that actually matters: **"How do we incorporate this change into our workflow?"** You send a governed message, the specialist responds, and you make the decision with real peer input instead of guesswork.
+
+## How the intelligence works
+
+Relay's matching runs on data, and its intelligence is graph plus machine learning that is deterministic and reproducible:
+
+- **Prescribing-domain clustering** groups doctors by their drug and prescribing vectors, so peers are matched on how they actually practice.
+- **Expertise-graph matching** traverses the network with evidence-weighted scoring, applying hard eligibility rules (verification, consent, availability) *before* ranking anyone.
+- **Trust learning** updates the graph from each consented, useful connection, so recommendations improve over time.
+
+Generative AI (Gemini) sits on top as an **explanation layer only** — it turns already-approved facts into clear, readable summaries. It never decides who is eligible, ranks peers, or invents information, and every AI surface has a deterministic fallback, so Relay works even with no network connection.
+
+## Where doctor data is stored
+
+Relay stores a doctor's **professional** information only — identity, specialty, expertise, prescribing history, region, affiliations, availability, help preferences, and successful-connection outcomes. It never stores patient names, records, diagnoses, or any patient-level data.
+
+- **In this prototype**, all physician and product data is deterministic **synthetic** data. Seed data lives in memory behind Relay's purpose-aware data broker. The local account session and structured consult lifecycle use browser `localStorage` plus `BroadcastChannel` so two seeded physician accounts can complete one same-browser flow; there is no hosted identity service or backend persistence. The prototype runs fully offline after dependencies are installed.
+- **In production**, doctor data lives in two stores behind the same governance layer: a **document database** (MongoDB) for profiles, consent, provenance, requests, responses, policy, and audit records; and a **graph database** (Neo4j) for the Network Graph itself, because matching constantly follows relationships from a doctor to their expertise, evidence, availability, and prior successful connections.
+
+Every read and write passes through the data broker and a deterministic policy engine. Consent is purpose-specific, provenance is attached to every field, every decision is recorded in an append-only audit trail, and no patient-level data is ever stored.
 
 ## Run the prototype
 
@@ -17,7 +75,7 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite and sign in with one of the physician accounts below. Use `npm run check` to run TypeScript validation, product-logic tests, and the production build.
+Open the local URL printed by Vite and sign in with one of the seeded physician accounts. Use `npm run check` to run TypeScript validation, product-logic tests, and the production build.
 
 The primary physician paths are `/mirror`, `/connect`, `/inbox`, `/ledger`, and `/audit`. The signed-in account determines the physician everywhere; Relay has no physician-switching control.
 
@@ -51,7 +109,7 @@ This local account store is intentionally scoped to the hackathon browser build.
 
 1. Read `AGENTS.md`.
 2. Read `org/README.md`, `org/CONTEXT.md`, `org/DECISIONS.md`, and `org/STATUS.md`.
-3. Read the plan for your workstream in `docs/`.
+3. Read the plan for your workstream in `docs/` (start with `network-graph-plan.md` and `doctor-connect-plan.md`).
 4. Follow `CONTRIBUTING.md` before adding a framework or dependency.
 
 Claude reads `CLAUDE.md`, Gemini reads `GEMINI.md`, and Codex-compatible agents read `AGENTS.md`. These entry points resolve to the same canonical instructions. The shared Relay project skill is canonical under `.claude/skills/relay-project/` and linked into `.agents/skills/` and `.codex/skills/`.
@@ -63,6 +121,8 @@ apps/
   web/                       browser application and feature UI
   api/                       reserved for the future HTTP composition root
 features/
+  network-graph/             expertise + trust graph matching and learning loop
+  peer-clustering/           prescribing-domain clustering and peer suggestions
   practice-mirror/           cohort comparison computation and use cases
   doctor-connect/            taxonomy, eligibility, ranking, and request states
   ledger/                    reviewed product-version comparison and update use cases
@@ -100,4 +160,4 @@ apps -> features -> relay-core -> shared packages -> domain
 
 ## Naming
 
-Relay is the product name in maintained documentation, agent context, package naming, and pitch artifacts. The lowercase word “delta” may still appear when it describes an ordinary mathematical or schema difference.
+Relay is the product name in maintained documentation, agent context, package naming, and pitch artifacts. The lowercase word "delta" may still appear when it describes an ordinary mathematical or schema difference.

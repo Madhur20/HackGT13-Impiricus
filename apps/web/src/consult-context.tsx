@@ -33,81 +33,109 @@ function loadRequests(): ConsultRequest[] {
 
 export function ConsultProvider({ children }: { children: ReactNode }) {
   const [requests, setRequests] = useState<ConsultRequest[]>(loadRequests);
+  const requestsRef = useRef(requests);
   const channelRef = useRef<BroadcastChannel | null>(null);
+
+  useEffect(() => {
+    requestsRef.current = requests;
+  }, [requests]);
+
+  const replaceRequests = useCallback((next: ConsultRequest[]) => {
+    requestsRef.current = next;
+    setRequests(next);
+  }, []);
 
   useEffect(() => {
     if (!("BroadcastChannel" in window)) return;
     const channel = new BroadcastChannel(channelName);
-    channel.onmessage = (event: MessageEvent<ConsultRequest[]>) => setRequests(event.data);
+    channel.onmessage = (event: MessageEvent<ConsultRequest[]>) => replaceRequests(event.data);
     channelRef.current = channel;
     return () => channel.close();
-  }, []);
+  }, [replaceRequests]);
 
   useEffect(() => {
     const receiveStorage = (event: StorageEvent) => {
-      if (event.key === storageKey) setRequests(loadRequests());
+      if (event.key === storageKey) replaceRequests(loadRequests());
     };
     window.addEventListener("storage", receiveStorage);
     return () => window.removeEventListener("storage", receiveStorage);
-  }, []);
+  }, [replaceRequests]);
 
   const commit = useCallback((update: (current: ConsultRequest[]) => ConsultRequest[]) => {
-    setRequests((current) => {
-      const next = update(current);
-      window.localStorage.setItem(storageKey, JSON.stringify(next));
-      channelRef.current?.postMessage(next);
-      return next;
-    });
+    const next = update(requestsRef.current);
+    requestsRef.current = next;
+    window.localStorage.setItem(storageKey, JSON.stringify(next));
+    channelRef.current?.postMessage(next);
+    setRequests(next);
+    return next;
   }, []);
 
-  const value = useMemo<ConsultContextValue>(() => ({
-    requests,
-    createRequest: ({ requester, recipient, question, selection }) => {
-      const now = new Date().toISOString();
-      const request: ConsultRequest = {
-        id: crypto.randomUUID(),
-        requesterId: requester.id,
-        requesterName: requester.name,
-        requesterSpecialty: requester.specialty,
-        requesterLocation: requester.location,
-        requesterCredentialStatus: requester.credentialStatus,
-        recipientId: recipient.id,
-        recipientName: recipient.displayName,
-        recipientSpecialty: recipient.specialty,
-        recipientState: recipient.state,
-        recipientCredentialStatus: "verified",
-        question,
-        selection: { ...selection },
-        status: "pending",
-        createdAt: now,
-        updatedAt: now,
-        requesterContactApproved: false,
-        recipientContactApproved: false,
-      };
-      commit((current) => [request, ...current]);
-      return request;
-    },
-    setStatus: (id, status) => commit((current) => current.map((request) => request.id === id ? { ...request, status, recipientReadAt: request.recipientReadAt ?? new Date().toISOString(), updatedAt: new Date().toISOString() } : request)),
-    submitAnswer: (id, answer) => commit((current) => current.map((request) => request.id === id ? {
+  const createRequest = useCallback(({ requester, recipient, question, selection }: NewRequest) => {
+    const now = new Date().toISOString();
+    const request: ConsultRequest = {
+      id: crypto.randomUUID(),
+      requesterId: requester.id,
+      requesterName: requester.name,
+      requesterSpecialty: requester.specialty,
+      requesterLocation: requester.location,
+      requesterCredentialStatus: requester.credentialStatus,
+      recipientId: recipient.id,
+      recipientName: recipient.displayName,
+      recipientSpecialty: recipient.specialty,
+      recipientState: recipient.state,
+      recipientCredentialStatus: "verified",
+      question,
+      selection: { ...selection },
+      status: "pending",
+      createdAt: now,
+      updatedAt: now,
+      requesterContactApproved: false,
+      recipientContactApproved: false,
+    };
+    commit((current) => [request, ...current]);
+    return request;
+  }, [commit]);
+
+  const setStatus = useCallback<ConsultContextValue["setStatus"]>((id, status) => {
+    commit((current) => current.map((request) => request.id === id ? { ...request, status, recipientReadAt: request.recipientReadAt ?? new Date().toISOString(), updatedAt: new Date().toISOString() } : request));
+  }, [commit]);
+
+  const submitAnswer = useCallback<ConsultContextValue["submitAnswer"]>((id, answer) => {
+    commit((current) => current.map((request) => request.id === id ? {
       ...request,
       status: "answered",
       answer: { ...answer, monitoring: [...answer.monitoring], answeredAt: new Date().toISOString() },
       recipientReadAt: request.recipientReadAt ?? new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    } : request)),
-    setContactApproval: (id, side, approved) => commit((current) => current.map((request) => request.id === id ? {
+    } : request));
+  }, [commit]);
+
+  const setContactApproval = useCallback<ConsultContextValue["setContactApproval"]>((id, side, approved) => {
+    commit((current) => current.map((request) => request.id === id ? {
       ...request,
       requesterContactApproved: side === "requester" ? approved : request.requesterContactApproved,
       recipientContactApproved: side === "recipient" ? approved : request.recipientContactApproved,
       updatedAt: new Date().toISOString(),
-    } : request)),
-    markRead: (id, side) => commit((current) => current.map((request) => {
+    } : request));
+  }, [commit]);
+
+  const markRead = useCallback<ConsultContextValue["markRead"]>((id, side) => {
+    commit((current) => current.map((request) => {
       if (request.id !== id) return request;
       const field = side === "requester" ? "requesterReadAt" : "recipientReadAt";
       if (request[field]) return request;
       return { ...request, [field]: new Date().toISOString() };
-    })),
-  }), [commit, requests]);
+    }));
+  }, [commit]);
+
+  const value = useMemo<ConsultContextValue>(() => ({
+    requests,
+    createRequest,
+    setStatus,
+    submitAnswer,
+    setContactApproval,
+    markRead,
+  }), [createRequest, markRead, requests, setContactApproval, setStatus, submitAnswer]);
 
   return <ConsultContext.Provider value={value}>{children}</ConsultContext.Provider>;
 }
