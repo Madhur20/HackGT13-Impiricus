@@ -6,6 +6,17 @@ __pycache__/
 # C extensions
 *.so
 
+node_modules/
+dist/
+.vite/
+coverage/
+*.tsbuildinfo
+*.local
+.env
+.env.*
+!.env.example
+.DS_Store
+
 # Distribution / packaging
 .Python
 build/
