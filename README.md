@@ -79,6 +79,20 @@ Open the local URL printed by Vite and sign in with one of the physician account
 
 The primary physician paths are `/mirror`, `/connect`, `/inbox`, `/ledger`, and `/audit`. The signed-in account determines the physician everywhere; Relay has no physician-switching control.
 
+## Deploy to Vercel
+
+The production deployment is available at <https://relay-hackgt13.vercel.app>. The repository includes a root `vercel.json` for the npm workspace. It installs from the repository root, builds `@relay/web`, publishes `apps/web/dist`, and rewrites client-side routes to `index.html`.
+
+Using the Vercel CLI from the repository root:
+
+```bash
+vercel login
+vercel
+vercel --prod
+```
+
+No environment variables are required for the current hackathon build. Browser-local accounts, requests, and responses remain local to one browser profile after deployment; cross-device physician workflows require the planned authenticated API and durable realtime datastore.
+
 ## Sign-in and two-physician testing
 
 The browser build includes local account-based sign-in and sign-up. No environment variables or external identity service are required.

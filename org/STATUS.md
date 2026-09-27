@@ -1,6 +1,6 @@
 # Relay project status
 
-Last updated: 2026-09-26.
+Last updated: 2026-09-27.
 
 ## Current state
 
@@ -10,7 +10,7 @@ Last updated: 2026-09-26.
 - **Tests:** 35 deterministic tests across local credential validation, consult unread state, cohort comparison, matching, policy, account-aware data-broker reads, update filtering/personalization and specialist eligibility, semantic-diff, peer domain clustering/discovery, and Network Graph expertise/trust matching, contextual-bandit ranking (UCB determinism/exploration, seeded Thompson reproducibility, eligibility), account-to-account routing, and learning behavior.
 - **Demo readiness:** Core click paths work from synthetic seed data and the production bundle builds. Headless Chrome checks confirm the new sign-in screen, authenticated Doctor Connect, Inbox, and the five-stage UCB match funnel render without a Vite error overlay at 1440 × 1000; hands-on mobile and full two-account interaction QA remain open.
 - **Data:** Forty-four synthetic HCP directory profiles (36 baseline, six featured experts, and two additional account profiles), prescribing fixtures, per-physician prescribing vectors and account-specific Mirror data, Network Graph fixtures (expertise tags/edges, peer-help profiles, seeded trust edges), three reviewed medicine-update fixtures, consent failure cases, and a fictional versioned policy.
-- **Deployment:** Local Vite build only; no hosted deployment or backend is configured.
+- **Deployment:** Production is hosted at `https://relay-hackgt13.vercel.app` through the `madhur20s-projects/relay-hackgt13` Vercel project. No backend is configured.
 
 Plans remain broader than the prototype. Do not infer production integrations, legal approval, real credentialing, or durable storage from the working UI.
 
@@ -45,6 +45,13 @@ The next demo-hardening milestone is complete when:
 - the team has made and recorded the local-only versus hosted-demo decision.
 
 ## Iteration log
+
+### 2026-09-27 — Vercel deployment configuration
+
+- **Changed:** Added root Vercel configuration for the npm workspace, publishing `apps/web/dist` with a single-page application route fallback, documented the CLI deployment workflow, and excluded Vercel's local project metadata from version control.
+- **Verified:** Vercel completed deployment `dpl_72NnjH5DkhEBi6N9QpKFFyoBubU3`; HTTPS requests to `/` and the direct `/connect` route both return `200`, confirming the SPA fallback.
+- **Open:** Automatic GitHub deployment could not be connected because Vercel did not have access to `Madhur20/HackGT13-Impiricus`. The hosted prototype still uses browser-local identity and consult storage, so different devices cannot exchange Doctor Connect requests without the planned backend.
+- **Next:** Grant the Vercel GitHub integration access to the repository if push-based preview/production deployments are desired, then complete hands-on hosted mobile and two-account QA.
 
 ### 2026-09-27 — Reconciled `logic` with `origin/GPT-POC` so the branches merge cleanly
 
