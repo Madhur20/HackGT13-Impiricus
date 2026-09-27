@@ -199,3 +199,31 @@ describe("contextual bandit policies", () => {
     }
   });
 });
+
+describe("category coverage on synthetic seed data", () => {
+  // Mirrors how the Doctor Connect UI queries: a specialty-less need built from
+  // a medication area plus a condition. Every category must surface at least two
+  // strong (~90%+) matches so the demo shows the RL matcher performing well.
+  const AREAS = ["sglt2", "glp1", "diabetes"];
+  const CONDITIONS = ["renal_impairment", "cardiovascular_disease", "diabetes", "hepatic_impairment"];
+
+  it("surfaces at least two ~90%+ matches for every medication category", () => {
+    for (const area of AREAS) {
+      for (const condition of CONDITIONS) {
+        const need = buildPeerNeed({ expertiseTagIds: [area, condition], helpMode: "async_question" });
+        const result = matchPeers({
+          need,
+          candidates: hcpProfiles,
+          expertiseEdges: seedExpertiseEdges,
+          peerHelpProfiles: seedPeerHelpProfiles,
+          trustEdges: seedTrustEdges,
+          tags: seedExpertiseTags,
+          limit: 12,
+          policy: "ucb",
+        });
+        const strong = result.matches.filter((match) => match.score >= 0.9);
+        expect(strong.length, `${area} + ${condition}`).toBeGreaterThanOrEqual(2);
+      }
+    }
+  });
+});

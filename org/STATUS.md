@@ -46,6 +46,13 @@ The next demo-hardening milestone is complete when:
 
 ## Iteration log
 
+### 2026-09-26 — Expanded seed data with featured experts for strong per-category matches
+
+- **Changed:** Added six synthetic "featured expert" physicians (`hcp-37`..`hcp-42`, across Internal Medicine and Family Medicine) to `demo-seed` with strongly corroborated expertise edges (drug class + every condition, derived strength 0.93) and seeded successful trust edges on their drug class and diabetes. Refactored the generators to build over `baseHcpProfiles` and concatenate the featured fixtures, so clustering/prescribing datasets are unchanged. Result: every medication category (SGLT2, GLP-1, Diabetes management) now yields at least two ~90%+ ("peer fit") matches driven by validated peer outcomes, demonstrating the bandit exploiting proven peers. Featured experts are deliberately non-Endocrinology to reinforce "match on expertise, not titles."
+- **Verified:** `npm run check` passes TypeScript validation, 30 tests (1 new category-coverage test asserting ≥2 matches ≥0.9 across all 12 area×condition needs), and the production build. Confirmed live in the in-IDE browser: GLP-1 + Renal surfaces three featured GLP-1 experts at 95% peer fit; the funnel now runs 39 → 28 → 25 → 25 → 6.
+- **Open:** Featured experts have no prescribing-clustering vectors, so they do not appear in Practice Mirror's "prescribe like you" panel (intentional, keeps clustering fixtures stable). Scores cluster tightly at ~95% for featured peers by design.
+- **Next:** Optionally vary featured strengths/trust for more score spread, and persist live UI feedback into the trust graph.
+
 ### 2026-09-26 — Merged redesigned UI with the model; wired the bandit into Doctor Connect
 
 - **Changed:** Merged the `logic` model branch (peer clustering, Network Graph, contextual-bandit matcher, synthetic graph fixtures) into `GPT-POC` (redesigned UI). Resolved conflicts in `README.md`, `MirrorPage.tsx` (kept the persona-specific Mirror data and the peer-discovery panel), and `org/` context. Wired `@relay/network-graph` `matchPeers` (deterministic UCB) into the redesigned `ConnectPage`: the governed question maps to expertise tags (drug class + condition), the eligible pool is ranked by the bandit, and step 2 now shows the live matching funnel and an "Exploring" badge for exploration-surfaced peers. Added `@relay/network-graph` as an `apps/web` dependency.

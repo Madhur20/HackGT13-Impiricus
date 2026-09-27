@@ -9,7 +9,7 @@ const specialties = ["Endocrinology", "Internal Medicine", "Family Medicine"];
 const states = ["GA", "GA", "GA", "NC", "FL"];
 const areas = ["GLP-1 therapies", "SGLT2 inhibitors", "Diabetes management"];
 
-export const hcpProfiles: HcpProfile[] = Array.from({ length: 36 }, (_, index) => ({
+const baseHcpProfiles: HcpProfile[] = Array.from({ length: 36 }, (_, index) => ({
   id: `hcp-${index + 1}`,
   displayName: ["Dr. Elena Ruiz", "Dr. Marcus Lee", "Dr. Priya Shah", "Dr. Noah Williams"][index % 4] + (index > 3 ? ` ${index + 1}` : ""),
   specialty: specialties[index % specialties.length],
@@ -28,6 +28,66 @@ export const hcpProfiles: HcpProfile[] = Array.from({ length: 36 }, (_, index) =
     { label: "Physician provided", source: "HCP_DECLARED" },
     { label: "Permitted for matching", source: "IMPIRICUS_INTERACTION" },
   ],
+}));
+
+// --- Featured cross-specialty experts -------------------------------------
+// High-signal physicians (Internal Medicine and Family Medicine, not just
+// Endocrinology) with strong, corroborated expertise and a track record of
+// useful peer help. They guarantee at least two ~90%+ matches for every
+// medication category, so the demo visibly shows the contextual bandit
+// exploiting validated peers. Their non-Endocrinology specialties reinforce
+// Relay's thesis: match on real prescribing/condition expertise, not titles.
+const FEATURED_STRENGTH = 0.93;
+const FEATURED_CONDITION_TAG_IDS = ["renal_impairment", "cardiovascular_disease", "diabetes", "hepatic_impairment"];
+
+const featuredConfig: { id: string; name: string; specialty: string; state: string; drugClass: DrugClassId }[] = [
+  { id: "hcp-37", name: "Dr. Sarah Okafor", specialty: "Internal Medicine", state: "GA", drugClass: "sglt2" },
+  { id: "hcp-38", name: "Dr. David Kim", specialty: "Internal Medicine", state: "GA", drugClass: "sglt2" },
+  { id: "hcp-39", name: "Dr. Aisha Rahman", specialty: "Family Medicine", state: "NC", drugClass: "sglt2" },
+  { id: "hcp-40", name: "Dr. Miguel Santos", specialty: "Internal Medicine", state: "GA", drugClass: "glp1" },
+  { id: "hcp-41", name: "Dr. Hannah Cohen", specialty: "Family Medicine", state: "GA", drugClass: "glp1" },
+  { id: "hcp-42", name: "Dr. Robert Nguyen", specialty: "Internal Medicine", state: "FL", drugClass: "glp1" },
+];
+
+const featuredExperts: HcpProfile[] = featuredConfig.map((expert) => ({
+  id: expert.id,
+  displayName: expert.name,
+  specialty: expert.specialty,
+  state: expert.state,
+  therapeuticAreas: [expert.drugClass === "sglt2" ? "SGLT2 inhibitors" : "GLP-1 therapies", "Diabetes management"],
+  topics: ["Monitoring", "Switching", "Initiation", "Tolerability"],
+  conditionTags: ["Renal impairment", "Cardiovascular disease", "Diabetes", "Hepatic impairment"],
+  availability: "available",
+  verified: true,
+  matchingConsent: true,
+  contactConsent: true,
+  responseReliability: 0.95,
+  timezoneFit: 1,
+  provenance: [
+    { label: "Public registry", source: "NPPES" },
+    { label: "Physician provided", source: "HCP_DECLARED" },
+    { label: "Permitted for matching", source: "IMPIRICUS_INTERACTION" },
+  ],
+}));
+
+export const hcpProfiles: HcpProfile[] = [...baseHcpProfiles, ...featuredExperts];
+
+// Explicit, strongly corroborated edges (drug class + every condition) with a
+// high derived strength so a validated featured expert scores ~90%+.
+const featuredExpertiseEdges: ExpertiseEdge[] = featuredConfig.flatMap((expert) => {
+  const drugSources: ExpertiseSource[] = ["IMPIRICUS_SIGNAL", "SELF_DECLARED", "PUBLICATION"];
+  const conditionSources: ExpertiseSource[] = ["SELF_DECLARED", "PUBLICATION"];
+  return [
+    { hcpId: expert.id, tagId: expert.drugClass, sources: drugSources, strength: FEATURED_STRENGTH },
+    ...FEATURED_CONDITION_TAG_IDS.map((tagId): ExpertiseEdge => ({ hcpId: expert.id, tagId, sources: conditionSources, strength: FEATURED_STRENGTH })),
+  ];
+});
+
+const featuredHelpProfiles: PeerHelpProfile[] = featuredConfig.map((expert) => ({
+  hcpId: expert.id,
+  offeredTagIds: [expert.drugClass, ...FEATURED_CONDITION_TAG_IDS],
+  helpModes: ["async_question", "short_call", "referral_guidance"],
+  peerSupportOptIn: true,
 }));
 
 const shares = [18, 21, 22, 24, 25, 19, 28, 26, 23, 27, 30, 20, 24, 29, 17, 25, 26, 22];
@@ -165,7 +225,7 @@ export const prescribingProfiles: PrescribingProfile[] = [
   // the shares they see elsewhere (e.g. Practice Mirror's class snapshot).
   { hcpId: "hcp-maya", specialty: "Endocrinology", state: "GA", year: 2024, classShares: { sglt2: 0.18, glp1: 0.31, dpp4: 0.12, basal: 0.22, metformin: 0.17 }, totalClaims: 620 },
   { hcpId: "hcp-jordan", specialty: "Internal Medicine", state: "GA", year: 2024, classShares: { sglt2: 0.42, glp1: 0.14, dpp4: 0.13, basal: 0.11, metformin: 0.2 }, totalClaims: 540 },
-  ...hcpProfiles.map((profile, index) => buildPrescribingProfile(profile.id, profile.specialty, profile.state, index % 3, index + 1)),
+  ...baseHcpProfiles.map((profile, index) => buildPrescribingProfile(profile.id, profile.specialty, profile.state, index % 3, index + 1)),
 ];
 
 // --- Synthetic Relay Network Graph fixtures ---
@@ -212,7 +272,8 @@ function topPrescribedClass(profile: PrescribingProfile): DrugClassId {
   return drugClassOrder.reduce((best, classId) => (profile.classShares[classId] > profile.classShares[best] ? classId : best), drugClassOrder[0]);
 }
 
-export const expertiseEdges: ExpertiseEdge[] = hcpProfiles.flatMap((profile, index) => {
+export const expertiseEdges: ExpertiseEdge[] = [
+  ...baseHcpProfiles.flatMap((profile, index) => {
   const edges: ExpertiseEdge[] = [];
   const prescribing = prescribingProfiles.find((entry) => entry.hcpId === profile.id);
 
@@ -241,9 +302,12 @@ export const expertiseEdges: ExpertiseEdge[] = hcpProfiles.flatMap((profile, ind
 
   edges.push({ hcpId: profile.id, tagId: affiliationTagIds[index % affiliationTagIds.length], sources: ["IMPIRICUS_SIGNAL"] });
   return edges;
-});
+  }),
+  ...featuredExpertiseEdges,
+];
 
-export const peerHelpProfiles: PeerHelpProfile[] = hcpProfiles.map((profile, index) => {
+export const peerHelpProfiles: PeerHelpProfile[] = [
+  ...baseHcpProfiles.map((profile, index) => {
   const prescribing = prescribingProfiles.find((entry) => entry.hcpId === profile.id);
   const drugTags = drugClasses.map((entry) => entry.classId).filter((classId) => (prescribing?.classShares[classId] ?? 0) >= 0.2);
   const conditionTags = profile.conditionTags.map((label) => conditionTagIdByLabel[label]).filter((tagId): tagId is string => Boolean(tagId));
@@ -259,7 +323,9 @@ export const peerHelpProfiles: PeerHelpProfile[] = hcpProfiles.map((profile, ind
     // A few physicians have not opted into peer support, to exercise the funnel.
     peerSupportOptIn: index % 7 !== 3,
   };
-});
+  }),
+  ...featuredHelpProfiles,
+];
 
 function seedTrust(expertId: string, tagId: string, requesterIds: string[], usefulness: number): TrustEdge[] {
   return requesterIds.map((fromHcpId) => ({
@@ -282,4 +348,11 @@ export const trustEdges: TrustEdge[] = [
   ...seedTrust("hcp-13", "renal_impairment", ["hcp-28"], 0.8),
   ...seedTrust("hcp-7", "sglt2", ["hcp-34"], 0.7),
   ...seedTrust("hcp-2", "glp1", ["hcp-5", "hcp-11", "hcp-14"], 0.9),
+  // Featured cross-specialty experts start with a strong, corroborated track
+  // record on their drug class and diabetes, so every category shows at least
+  // two ~90% matches driven by validated peer outcomes.
+  ...featuredConfig.flatMap((expert) => [
+    ...seedTrust(expert.id, expert.drugClass, ["hcp-16", "hcp-19", "hcp-22", "hcp-25"], 0.95),
+    ...seedTrust(expert.id, "diabetes", ["hcp-28", "hcp-31", "hcp-34"], 0.92),
+  ]),
 ];
