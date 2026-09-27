@@ -41,13 +41,24 @@ The deterministic scan currently checks for:
 - conventional and lightly obfuscated email addresses;
 - formatted and unformatted US phone numbers;
 - numeric, ISO, written-month, and date-of-birth date patterns;
-- medical-record, chart, account, member, claim, case, policy, and encounter identifiers;
+- medical-record, chart, account, member, claim, case, policy, and encounter identifiers, and bare seven-plus-digit numbers; a labelled identifier value must contain a digit, so phrases such as `insurance coverage` or `group visits` pass;
 - Social Security, driver's-license, and passport patterns;
-- street addresses, ZIP/postal codes, and contextual residence/work locations;
+- street addresses, ZIP/postal codes, and residence/work locations that name a place (`lives in Atlanta`, not `lives alone` or `I work at night`);
 - web URLs and social handles;
-- named-person patterns including introduced names, family relationships, initials, possessives, names before clinical statements, and trailing-name phrasing such as `Bob has renal impairment`, `Bob's renal impairment`, and `renal impairment for Bob`;
-- exact-age phrases outside the age field, and mixed patient detail inside the age field;
+- person references, detected by context rather than fixed phrases (see below);
+- exact-age phrases outside the age field (`72-year-old`, `72 yo`, `age 72`), but not durations (`for 2 years`) or ranges (`aged 65 and older`, `18–39 years old`), and mixed patient detail inside the age field;
 - text exceeding the cap for that field.
+
+### Person-reference detection
+
+A role word is not a name: `my patient`, `the patient is stable`, and `Patient has renal impairment` pass. A word is flagged as a person reference when it is:
+
+- a listed given name or surname, in any case or position, including alone or as a possessive (`Bob`, `bob's`, `Priya Patel`);
+- a name that is also an ordinary word (`Will`, `Mark`, `Grace`) only when capitalized mid-sentence or in a person position (`Will has CKD`, but not `Will the dose change?`);
+- an unlisted word in a person position: after a role, title, relation, or naming word (`patient Priya`, `Dr. Okonkwo`, `my patient is Priya`, `my patient priya has CKD`), as a possessive (`Priya's CKD`), capitalized before a person verb (`Priya has CKD`), capitalized after `for`/`about`/`regarding`/`with`, or beside another flagged name;
+- initials (`J.D.`, `pt JD`, `Mr. K`).
+
+Known clinical words, drug brands, generic-drug and ordinary-word endings, medical acronyms (`CKD`, `SGLT`), and eponyms in use (`Wilson disease`, `Fournier's gangrene`) are not treated as names. The word lists live in `features/doctor-connect/src/person-lexicon.ts`; the detector is `person-reference.ts`. A name that is not listed and appears with no person context (for example, `ask Priya`) can still pass, which is why physician confirmation remains required.
 
 Safety-event and product-complaint phrases follow the existing stop path instead of entering peer matching.
 
@@ -64,7 +75,7 @@ The physician should remove the identifying detail and retain only the general c
 
 ## 4. Redaction behavior
 
-Redaction is explanatory, not silent mutation. When a likely identifier is found, Relay leaves the original entry visible, identifies the risk type, shows a redacted preview, and blocks continuation until the physician edits the field and reruns the check. Age generalization is the one allowed transformation: it occurs only after review, is shown explicitly, and requires confirmation before sending.
+Redaction is explanatory, not silent mutation. When a likely identifier is found, Relay leaves the original entry visible, identifies the risk type, shows a redacted preview that replaces only the identifying words (`my patient [name removed] has CKD`), and blocks continuation until the physician edits the field and reruns the check. Age generalization is the one allowed transformation: it occurs only after review, is shown explicitly, and requires confirmation before sending.
 
 Relay must not quietly send the redacted version because that could change meaning without the physician noticing.
 

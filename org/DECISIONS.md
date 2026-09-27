@@ -4,6 +4,7 @@ This file records durable decisions. New entries should include a date, status, 
 
 ## Accepted baseline decisions
 
+<<<<<<< Updated upstream
 ### 2026-09-27 — Email-sharing approval is one-way
 
 - **Status:** Accepted; supersedes per-consult email approval revocation
@@ -19,6 +20,23 @@ This file records durable decisions. New entries should include a date, status, 
 - **Reason:** Peer answers are easier to write consistently and faster to scan when they follow a common clinical shape, without losing the expressiveness of free text.
 - **Boundary:** The scaffold is presentation only. Storage is still one reviewed free-text value with the same guardrail, preview, confirmation, and disposal lifecycle; no separate dose, patient-narrative, or attachment field is introduced.
 - **Affected:** Inbox response builder, requester response view, Doctor Connect answer helpers and tests.
+=======
+### 2026-09-27 — Context-aware person-reference detection in the privacy scan
+
+- **Status:** Accepted; refines the guarded free-text decisions
+- **Decision:** Detect person references by reading each word's context (role/title/relation words, possessives, person verbs, person prepositions, neighbouring names) against maintained name, clinical-term, drug-brand, acronym, and eponym lists, instead of fixed name-plus-trigger-word regexes. A role word alone is never a name. Identifier rules require a digit in the value, exact-age rules require age wording, and residence/work rules require a named place.
+- **Reason:** The previous rules blocked safe phrasing (`Patient has renal impairment`, `Metformin was stopped`, `for 2 years`, `insurance coverage`) while missing obvious names (`Bob`, `Bob's`, `Priya Patel`), which made the check feel arbitrary to physicians.
+- **Boundary:** Still deterministic and offline, with no AI call. It reduces risk but does not prove de-identification; unlisted names without person context can pass.
+- **Affected:** `features/doctor-connect` guardrails and tests, `docs/doctor-connect-input-pipeline.md`, `org/STATUS.md`.
+
+### 2026-09-27 — Cross-device consult delivery through a shared demo table
+
+- **Status:** Accepted for the hackathon demo; refines the account-bound identity decision's transport boundary
+- **Decision:** Sync the Doctor Connect consult lifecycle across devices through a Supabase table, `consult_requests` (project `relay-hackgt13`), that the browser reads and writes directly with `supabase-js`, using Realtime push plus 4-second polling and a newest-`updatedAt`-wins merge. There is no custom server code. `localStorage` and `BroadcastChannel` remain the local cache and same-browser path. The publishable key is committed in `apps/web/src/sync-config.ts`, and `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` override it.
+- **Reason:** The demo needs the requester and recipient on two different laptops, and the team has no time to build a backend.
+- **Boundary:** Row-level security allows anonymous select, insert, and update, so anyone holding the public key can read or change rows. The table must hold synthetic records only. This is not server-side authorization or consent enforcement. Production still requires authenticated APIs, account-scoped access, server-side transition/policy validation, and audited contact disclosure.
+- **Affected:** `apps/web/src/consult-context.tsx`, `consult-sync.ts`, `sync-config.ts`, deployment, README, system and Doctor Connect plans.
+>>>>>>> Stashed changes
 
 ### 2026-09-27 — Responder uses the same explicit guarded-text lifecycle
 

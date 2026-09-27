@@ -7,10 +7,14 @@ Last updated: 2026-09-27.
 - **Stage:** Functional browser-first hackathon prototype.
 - **Repository contents:** Product/system plans, maintained context, contribution guidance, module boundaries, and a TypeScript workspace.
 - **Application code:** React/Vite web shell with a DocUpdate-compatible local sign-in/sign-up screen, Home, Practice Mirror, RL-backed Doctor Connect, a recipient Inbox, physician-facing Ledger Updates, and a shared Audit view.
+<<<<<<< Updated upstream
 - **Tests:** 46 deterministic tests across local credential validation, consult unread state, guarded free-text question/answer handling and age generalization, the structured answer scaffold, legacy structured-answer compatibility, cohort comparison, matching, policy, account-aware data-broker reads, update filtering/personalization and specialist eligibility, semantic-diff, peer domain clustering/discovery, and Network Graph expertise/trust matching, contextual-bandit ranking, account-to-account routing, and learning behavior.
+=======
+- **Tests:** 45 deterministic tests across local credential validation, consult unread state, guarded free-text question/answer handling and age generalization, legacy structured-answer compatibility, cohort comparison, matching, policy, account-aware data-broker reads, update filtering/personalization and specialist eligibility, semantic-diff, peer domain clustering/discovery, and Network Graph expertise/trust matching, contextual-bandit ranking, account-to-account routing, and learning behavior.
+>>>>>>> Stashed changes
 - **Demo readiness:** Core click paths work from synthetic seed data and the production bundle builds. Headless Chrome checks confirm the new sign-in screen, authenticated Doctor Connect, Inbox, and the five-stage UCB match funnel render without a Vite error overlay at 1440 × 1000; hands-on mobile and full two-account interaction QA remain open.
 - **Data:** Forty-four synthetic HCP directory profiles (36 baseline, six featured experts, and two additional account profiles), prescribing fixtures, per-physician prescribing vectors and account-specific Mirror data, Network Graph fixtures (expertise tags/edges, peer-help profiles, seeded trust edges), three reviewed medicine-update fixtures, consent failure cases, and a fictional versioned policy.
-- **Deployment:** Production is hosted at `https://relay-hackgt13.vercel.app` through the `madhur20s-projects/relay-hackgt13` Vercel project. No backend is configured.
+- **Deployment:** Production is hosted at `https://relay-hackgt13.vercel.app` through the `madhur20s-projects/relay-hackgt13` Vercel project. There is no custom backend. Consult requests sync across devices through the Supabase project `relay-hackgt13` (table `consult_requests`, anonymous read/write, synthetic data only). Demo reset: `delete from consult_requests;` then clear site data in each browser.
 
 Plans remain broader than the prototype. Do not infer production integrations, legal approval, real credentialing, or durable storage from the working UI.
 
@@ -21,7 +25,7 @@ Harden the working prototype for the hackathon demo:
 1. Perform hands-on responsive QA in Chrome and on a phone-sized device.
 2. Add browser-level tests for sign-in, the two-account Connect → Inbox → Connect lifecycle, one-way email approval, double-consent contact reveal, Mirror → Connect, and Updates → Connect.
 3. Add a deterministic reset for browser-local account, consult, page, and audit state.
-4. After the input-pipeline work, evaluate the deferred Supabase Auth + Postgres + Realtime option for cross-device accounts, consult persistence, and notifications; it is a candidate, not yet an accepted architecture decision.
+4. Cross-device consult delivery now uses a public-anon Supabase demo table. Supabase Auth, account-scoped row-level security, and server-side validation remain deferred production work.
 5. Prepare deployment and a concise scripted demo run.
 
 ## Required early fixtures
@@ -46,6 +50,7 @@ The next demo-hardening milestone is complete when:
 
 ## Iteration log
 
+<<<<<<< Updated upstream
 ### 2026-09-27 — One-way email approval and scroll reset on navigation
 
 - **Changed:** Email-sharing approval is now final: the consult context exposes `approveContact` instead of a boolean toggle, and the Inbox and Doctor Connect buttons lock as "Email approved"/"Approved" with copy stating approval cannot be withdrawn. Separately, the app shell scrolls the window to the top whenever the route changes, so each page opens at its top.
@@ -63,6 +68,20 @@ The next demo-hardening milestone is complete when:
 - **Changed:** Inbox no longer auto-opens the first request, so a request is marked read only when the physician clicks it; unread requests show a dot and heavier name. Doctor Connect gained a **Your questions** list of every request the physician sent, newest first, with a dot on unread answers; opening one restores it and marks the answer read. Previously visiting Inbox silently read one request, and answers to any request other than the single active one could never be opened, leaving the Doctor Connect badge stuck.
 - **Verified:** Browser run with two unread requests and two unread answers: Inbox 2 → visit 2 → open first 1 → reopen first 1 → open second 0; Doctor Connect 2 → visit 2 → open first 1 → open second 0; counts persist across reload. `npm run check` passes.
 - **Open:** Browser automation for this flow is not yet in the test suite.
+=======
+### 2026-09-27 — Context-aware Doctor Connect privacy scan
+
+- **Changed:** Replaced the fixed named-person regexes with a context-aware person-reference detector (`features/doctor-connect/src/person-reference.ts` and `person-lexicon.ts`). Role words such as `my patient` no longer trigger a block; listed names flag on their own (`Bob`, `Bob's`), and unlisted names flag in a person position (`patient Priya`, `Priya's CKD`, `for Priya.`). Capitalized drug names and clinical words before `has`/`is`/`was` no longer flag. Identifier values now need a digit, exact-age phrases need age wording (durations and ranges pass), and location phrases need a named place. Redaction previews now replace only the identifying words. Guardrail version is now `connect-guardrails-v3`.
+- **Verified:** `npm run typecheck`, 45 tests, and `npm run build` pass. New tests cover the previously wrong cases in both directions.
+- **Open:** The detector remains a deterministic word-list and context scan; an unlisted name with no surrounding person context can pass. Physician confirmation and production review are still required.
+
+### 2026-09-27 — Cross-device Doctor Connect through a shared demo table
+
+- **Changed:** Created Supabase project `relay-hackgt13` with a `consult_requests` table (JSON request, anonymous read/insert/update row-level security, Realtime publication). `ConsultProvider` now loads remote requests on mount, subscribes to Realtime, polls every 4 seconds, merges by newest `updatedAt`, and upserts only changed rows on each commit. `markRead` now bumps `updatedAt` so read receipts survive the merge. The Supabase URL and publishable key live in the committed `apps/web/src/sync-config.ts`.
+- **Verified:** `npm run check` passes TypeScript validation, 43 tests, and the production build. With two isolated Playwright browser contexts against the dev server, Elena sent a request to Maya, and the row appeared in Supabase. Maya's separate context, which had no shared `localStorage`, showed the request in Inbox. When Maya accepted, Elena's already-open Connect page showed "Dr. Maya Chen accepted your request" without a reload. The test row was deleted afterward.
+- **Open:** The answer and contact-approval steps were not exercised cross-device; they use the same commit path. Vercel must be redeployed to ship this. The table is publicly writable, and a small clock skew between laptops could let an older edit win the merge.
+- **Next:** Redeploy to Vercel and rehearse the full Elena → Maya → Elena flow on two physical laptops.
+>>>>>>> Stashed changes
 
 ### 2026-09-27 — Guarded free-text physician answer flow
 

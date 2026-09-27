@@ -167,7 +167,7 @@ Jurisdiction examples are synthetic and are not legal advice.
 
 One responsive physician web application exposes Overview, Practice Mirror, Doctor Connect, the recipient Inbox, and Updates. A browser-local account session supplies the HCP identity used throughout the hackathon build. The interface has no physician switcher or URL-based inbox impersonation. Production must replace local accounts with server-side authentication and protected sessions.
 
-The current request lifecycle synchronizes between same-browser tabs with `BroadcastChannel` and `localStorage`, allowing one tab to send while a second physician tab accepts and answers immediately. This is not the production transport. Multi-device deployment requires an authenticated API, durable request storage, server-side policy enforcement, and a realtime channel.
+The current request lifecycle synchronizes across devices through a shared Supabase demo table (`consult_requests`) that the browser reads and writes directly, with Supabase Realtime push and a 4-second polling fallback; `BroadcastChannel` and `localStorage` remain the same-browser path and local cache. The table accepts anonymous reads and writes of synthetic records only. This is not the production transport. Multi-device deployment requires an authenticated API, durable request storage, server-side policy enforcement, and a realtime channel.
 
 The presentation follows the supplied DocUpdate references:
 

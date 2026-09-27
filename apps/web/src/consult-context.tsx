@@ -1,9 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { ConsultRequest, HcpProfile, Persona, QuestionSelection } from "@relay/domain";
 import { ANSWER_GUARDRAIL_VERSION, ANSWER_TAXONOMY_VERSION, QUESTION_TAXONOMY_VERSION, assembleQuestion, prepareAnswerText, prepareQuestionSelection } from "@relay/doctor-connect";
+import { fetchAllConsults, mergeConsults, subscribeToConsults, upsertConsults } from "./consult-sync";
+import { sharedSyncEnabled } from "./sync-config";
 
 const storageKey = "relay.consult-requests.v2";
 const channelName = "relay-consult-requests";
+const pollIntervalMs = 4000;
 
 type NewRequest = {
   requester: Persona;
@@ -66,12 +69,36 @@ export function ConsultProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("storage", receiveStorage);
   }, [replaceRequests]);
 
+  // Cross-device delivery through the shared demo table: realtime push plus a polling fallback.
+  useEffect(() => {
+    if (!sharedSyncEnabled) return;
+    let active = true;
+    const receive = (incoming: ConsultRequest[]) => {
+      if (!active) return;
+      const next = mergeConsults(requestsRef.current, incoming);
+      if (next === requestsRef.current) return;
+      window.localStorage.setItem(storageKey, JSON.stringify(next));
+      replaceRequests(next);
+    };
+    const pull = () => fetchAllConsults().then((remote) => remote && receive(remote));
+    void pull();
+    const unsubscribe = subscribeToConsults((request) => receive([request]));
+    const interval = window.setInterval(pull, pollIntervalMs);
+    return () => {
+      active = false;
+      unsubscribe();
+      window.clearInterval(interval);
+    };
+  }, [replaceRequests]);
+
   const commit = useCallback((update: (current: ConsultRequest[]) => ConsultRequest[]) => {
-    const next = update(requestsRef.current);
+    const previous = requestsRef.current;
+    const next = update(previous);
     requestsRef.current = next;
     window.localStorage.setItem(storageKey, JSON.stringify(next));
     channelRef.current?.postMessage(next);
     setRequests(next);
+    void upsertConsults(next.filter((request) => !previous.includes(request)));
     return next;
   }, []);
 
@@ -132,7 +159,8 @@ export function ConsultProvider({ children }: { children: ReactNode }) {
       if (request.id !== id) return request;
       const field = side === "requester" ? "requesterReadAt" : "recipientReadAt";
       if (request[field]) return request;
-      return { ...request, [field]: new Date().toISOString() };
+      const now = new Date().toISOString();
+      return { ...request, [field]: now, updatedAt: now };
     }));
   }, [commit]);
 

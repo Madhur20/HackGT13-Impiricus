@@ -89,14 +89,27 @@ describe("Doctor Connect", () => {
     const examples = [
       ["Bob has renal impairment", "[name removed] has renal impairment"],
       ["Maya Chen takes Jardiance", "[name removed] takes Jardiance"],
-      ["my patient Elena has CKD", "[name removed] has CKD"],
-      ["Bob's renal function declined", "[name removed] renal function declined"],
-      ["bob's Renal impairment", "[name removed] Renal impairment"],
-      ["Maya’s CKD monitoring", "[name removed] CKD monitoring"],
-      ["Renal impairment for bob", "Renal impairment [name removed]"],
-      ["CKD in maya chen", "CKD [name removed]"],
-      ["Monitoring regarding John", "Monitoring [name removed]"],
+      ["my patient Elena has CKD", "my patient [name removed] has CKD"],
+      ["Bob's renal function declined", "[name removed]'s renal function declined"],
+      ["bob's Renal impairment", "[name removed]'s Renal impairment"],
+      ["Maya’s CKD monitoring", "[name removed]’s CKD monitoring"],
+      ["Renal impairment for bob", "Renal impairment for [name removed]"],
+      ["CKD in maya chen", "CKD in [name removed]"],
+      ["Monitoring regarding John", "Monitoring regarding [name removed]"],
       ["Bob: renal impairment", "[name removed]: renal impairment"],
+      ["Bob", "[name removed]"],
+      ["Bob's", "[name removed]'s"],
+      ["Priya's CKD", "[name removed]'s CKD"],
+      ["Priya has CKD", "[name removed] has CKD"],
+      ["my patient Priya has CKD", "my patient [name removed] has CKD"],
+      ["my patient priya has CKD", "my patient [name removed] has CKD"],
+      ["my patient is Priya", "my patient is [name removed]"],
+      ["Titration for Priya.", "Titration for [name removed]."],
+      ["Priya Okafor takes Jardiance", "[name removed] takes Jardiance"],
+      ["Dr. Okonkwo reviewed CKD", "Dr. [name removed] reviewed CKD"],
+      ["patient J.D. has CKD", "patient [name removed] has CKD"],
+      ["pt JD", "pt [name removed]"],
+      ["Will has CKD", "[name removed] has CKD"],
     ] as const;
 
     for (const [entered, redacted] of examples) {
@@ -110,6 +123,51 @@ describe("Doctor Connect", () => {
     const unsafeQuestion = { ...selection, conditionTag: "Bob has renal impairment" };
     expect(reviewQuestionSelection(unsafeQuestion).status).toBe("needs_changes");
     expect(() => assertSafeQuestionSelection(unsafeQuestion)).toThrow(/privacy or safety changes/);
+  });
+
+  it("allows general patient references, drug names, and clinical phrasing that contain no identifier", () => {
+    const safe = [
+      "my patient",
+      "My patient has CKD",
+      "my patient with CKD",
+      "the patient is stable",
+      "the patient is euvolemic",
+      "Patient has renal impairment",
+      "Patient is on Jardiance",
+      "Patient with CKD",
+      "patient CKD stage 3",
+      "Jardiance has renal dosing limits",
+      "Metformin was stopped",
+      "Semaglutide was held",
+      "Tolerance is good",
+      "Dosing for GLP-1 in SGLT2 users",
+      "CKD With Heart Failure",
+      "Mark the renal trend",
+      "Will the dose change?",
+      "Frank discussion of risks. Hope this helps.",
+      "may consider a lower starting dose in May",
+      "patients with Parkinson's",
+      "Wilson disease and Stevens-Johnson syndrome risk",
+      "Child-Pugh class B",
+      "Fournier's gangrene with SGLT2 inhibitors",
+      "U.S. labeling reviewed by the M.D.",
+      "Treated for 2 years and reassessed every 3 years",
+      "aged 65 and older",
+      "patients 18-39 years old",
+      "insurance coverage was denied",
+      "group visits help",
+      "In this case - the patient improved",
+      "I work at night and the patient lives alone",
+    ];
+    for (const text of safe) expect(reviewAnswerText(text), text).toMatchObject({ status: "ready", issues: [] });
+  });
+
+  it("keeps identifier rules that still need a real identifier value", () => {
+    expect(reviewAnswerText("chart 88321").issues).toContain("record_id");
+    expect(reviewAnswerText("record 12345678").issues).toContain("record_id");
+    expect(reviewAnswerText("lives in Atlanta").issues).toContain("precise_location");
+    expect(reviewAnswerText("72 yo male").issues).toContain("exact_age");
+    expect(reviewAnswerText("age 72").issues).toContain("exact_age");
   });
 
   it("stops safety-event text at the storage boundary", () => {
