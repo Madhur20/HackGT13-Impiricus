@@ -1,5 +1,12 @@
-import { currentClientFields, hcpProfiles, practiceUpdates, prescribingProfiles, prescribingStats } from "@relay/demo-seed";
-import type { AccessDecision, AllowedField, HcpProfile, PracticeUpdate, PrescribingProfile, PrescribingStat, Purpose } from "@relay/domain";
+import { currentClientFields, expertiseEdges, expertiseTags, hcpProfiles, peerHelpProfiles, practiceUpdates, prescribingProfiles, prescribingStats, trustEdges } from "@relay/demo-seed";
+import type { AccessDecision, AllowedField, ExpertiseEdge, ExpertiseTag, HcpProfile, PeerHelpProfile, PracticeUpdate, PrescribingProfile, PrescribingStat, Purpose, TrustEdge } from "@relay/domain";
+
+export type NetworkGraphData = {
+  tags: ExpertiseTag[];
+  expertiseEdges: ExpertiseEdge[];
+  peerHelpProfiles: PeerHelpProfile[];
+  trustEdges: TrustEdge[];
+};
 import { authorizeUse, POLICY_VERSION } from "@relay/policy-engine";
 
 export type BrokerResult<T> = {
@@ -25,6 +32,22 @@ export function readClusteringDataset(): BrokerResult<PrescribingProfile[]> {
   return {
     data: prescribingProfiles.map((profile) => ({ ...profile, classShares: { ...profile.classShares } })),
     purpose: "AGGREGATE_ANALYTICS",
+    decision: allowed(),
+  };
+}
+
+export function readNetworkGraph(): BrokerResult<NetworkGraphData> {
+  // The Network Graph backs peer matching. Fresh copies are returned so the
+  // learning loop can update trust edges without mutating the seed. Peer
+  // identity is still gated by PEER_MATCHING at ranking time.
+  return {
+    data: {
+      tags: expertiseTags.map((tag) => ({ ...tag })),
+      expertiseEdges: expertiseEdges.map((edge) => ({ ...edge, sources: [...edge.sources] })),
+      peerHelpProfiles: peerHelpProfiles.map((profile) => ({ ...profile, offeredTagIds: [...profile.offeredTagIds], helpModes: [...profile.helpModes] })),
+      trustEdges: trustEdges.map((edge) => ({ ...edge })),
+    },
+    purpose: "PEER_MATCHING",
     decision: allowed(),
   };
 }

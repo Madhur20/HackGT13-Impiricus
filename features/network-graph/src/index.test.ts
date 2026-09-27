@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ExpertiseEdge, ExpertiseTag, HcpProfile, PeerHelpProfile, PeerNeed, TrustEdge } from "@relay/domain";
+import { expertiseEdges as seedExpertiseEdges, expertiseTags as seedExpertiseTags, hcpProfiles, peerHelpProfiles as seedPeerHelpProfiles, trustEdges as seedTrustEdges } from "@relay/demo-seed";
 import { buildPeerNeed, combineEvidence, matchPeers, recordConnectionOutcome } from "./index";
 
 function makeHcp(id: string, overrides: Partial<HcpProfile> = {}): HcpProfile {
@@ -114,5 +115,45 @@ describe("recordConnectionOutcome (learning)", () => {
     expect(jonesAfter?.trustConnections).toBe(5);
     expect(jonesAfter?.trustScore).toBeGreaterThan(0);
     expect((jonesAfter?.score ?? 0)).toBeGreaterThan(jonesBefore?.score ?? 0);
+  });
+});
+
+const seedNeed: PeerNeed = { specialty: "Endocrinology", expertiseTagIds: ["sglt2", "renal_impairment"], helpMode: "async_question" };
+
+describe("network graph on synthetic seed data", () => {
+  it("ranks a validated expert first for a prescribing-based need", () => {
+    const result = matchPeers({
+      need: seedNeed,
+      candidates: hcpProfiles,
+      expertiseEdges: seedExpertiseEdges,
+      peerHelpProfiles: seedPeerHelpProfiles,
+      trustEdges: seedTrustEdges,
+      tags: seedExpertiseTags,
+    });
+
+    expect(result.noMatch).toBe(false);
+    expect(result.matches.length).toBeGreaterThan(0);
+    expect(result.matches[0].profile.id).toBe("hcp-1");
+    expect(result.matches[0].trustConnections).toBeGreaterThan(0);
+    expect(result.matches.every((match) => match.profile.verified && match.profile.matchingConsent && match.profile.availability !== "unavailable")).toBe(true);
+
+    const counts = result.funnel.map((step) => step.count);
+    expect(counts[0]).toBeGreaterThanOrEqual(counts[counts.length - 1]);
+  });
+
+  it("raises a synthetic peer's score after positive feedback (flywheel on seed data)", () => {
+    const target = "hcp-16"; // eligible SGLT2 prescriber with no seeded trust
+    const before = matchPeers({ need: seedNeed, candidates: hcpProfiles, expertiseEdges: seedExpertiseEdges, peerHelpProfiles: seedPeerHelpProfiles, trustEdges: seedTrustEdges, tags: seedExpertiseTags, limit: 12 });
+    const beforeScore = before.matches.find((match) => match.profile.id === target)?.score ?? 0;
+    expect(before.matches.find((match) => match.profile.id === target)?.trustConnections).toBe(0);
+
+    let trustEdges: TrustEdge[] = seedTrustEdges;
+    for (const requester of ["r1", "r2", "r3", "r4", "r5"]) {
+      trustEdges = recordConnectionOutcome({ requesterId: requester, expertId: target, tagId: "sglt2", outcome: { useful: "yes", resolution: "resolved" }, trustEdges }).trustEdges;
+    }
+
+    const after = matchPeers({ need: seedNeed, candidates: hcpProfiles, expertiseEdges: seedExpertiseEdges, peerHelpProfiles: seedPeerHelpProfiles, trustEdges, tags: seedExpertiseTags, limit: 12 });
+    const afterScore = after.matches.find((match) => match.profile.id === target)?.score ?? 0;
+    expect(afterScore).toBeGreaterThan(beforeScore);
   });
 });

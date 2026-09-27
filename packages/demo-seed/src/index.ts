@@ -1,4 +1,4 @@
-import type { AllowedField, DrugClassId, DrugClassRef, HcpProfile, Persona, PracticeUpdate, PrescribingProfile, PrescribingStat } from "@relay/domain";
+import type { AllowedField, DrugClassId, DrugClassRef, ExpertiseEdge, ExpertiseSource, ExpertiseTag, HcpProfile, HelpMode, PeerHelpProfile, Persona, PracticeUpdate, PrescribingProfile, PrescribingStat, TrustEdge } from "@relay/domain";
 
 export const personas: Persona[] = [
   { id: "hcp-maya", name: "Dr. Maya Chen", role: "hcp", subtitle: "Endocrinology · Atlanta, GA", initials: "MC" },
@@ -156,4 +156,120 @@ export const prescribingProfiles: PrescribingProfile[] = [
   { hcpId: "hcp-maya", specialty: "Endocrinology", state: "GA", year: 2024, classShares: { sglt2: 0.18, glp1: 0.31, dpp4: 0.12, basal: 0.22, metformin: 0.17 }, totalClaims: 620 },
   { hcpId: "hcp-jordan", specialty: "Internal Medicine", state: "GA", year: 2024, classShares: { sglt2: 0.42, glp1: 0.14, dpp4: 0.13, basal: 0.11, metformin: 0.2 }, totalClaims: 540 },
   ...hcpProfiles.map((profile, index) => buildPrescribingProfile(profile.id, profile.specialty, profile.state, index % 3, index + 1)),
+];
+
+// --- Synthetic Relay Network Graph fixtures ---
+// The expertise and trust graphs are derived from the existing synthetic
+// physicians and their prescribing history, so matching runs on real signals
+// (drug/prescribing history, declared experience, region) rather than titles.
+// All data is synthetic; no patient data is present.
+
+export const expertiseTags: ExpertiseTag[] = [
+  { id: "sglt2", label: "SGLT2 inhibitors", kind: "drug_class" },
+  { id: "glp1", label: "GLP-1 receptor agonists", kind: "drug_class" },
+  { id: "dpp4", label: "DPP-4 inhibitors", kind: "drug_class" },
+  { id: "basal", label: "Basal insulin", kind: "drug_class" },
+  { id: "metformin", label: "Metformin & other orals", kind: "drug_class" },
+  { id: "renal_impairment", label: "Renal impairment", kind: "condition" },
+  { id: "cardiovascular_disease", label: "Cardiovascular disease", kind: "condition" },
+  { id: "diabetes", label: "Diabetes", kind: "condition" },
+  { id: "hepatic_impairment", label: "Hepatic impairment", kind: "condition" },
+  { id: "initiation", label: "Initiation", kind: "topic" },
+  { id: "monitoring", label: "Monitoring", kind: "topic" },
+  { id: "switching", label: "Switching", kind: "topic" },
+  { id: "tolerability", label: "Tolerability", kind: "topic" },
+  { id: "emory_system", label: "Emory-affiliated (synthetic)", kind: "affiliation" },
+  { id: "piedmont_network", label: "Piedmont network (synthetic)", kind: "affiliation" },
+  { id: "rural_ga_clinic", label: "Rural GA clinic (synthetic)", kind: "affiliation" },
+];
+
+const conditionTagIdByLabel: Record<string, string> = {
+  "Renal impairment": "renal_impairment",
+  "Cardiovascular disease": "cardiovascular_disease",
+  Diabetes: "diabetes",
+  "Hepatic impairment": "hepatic_impairment",
+};
+
+const classIdByArea: Record<string, DrugClassId | undefined> = {
+  "GLP-1 therapies": "glp1",
+  "SGLT2 inhibitors": "sglt2",
+  "Diabetes management": undefined,
+};
+
+const affiliationTagIds = ["emory_system", "piedmont_network", "rural_ga_clinic"];
+
+function topPrescribedClass(profile: PrescribingProfile): DrugClassId {
+  return drugClassOrder.reduce((best, classId) => (profile.classShares[classId] > profile.classShares[best] ? classId : best), drugClassOrder[0]);
+}
+
+export const expertiseEdges: ExpertiseEdge[] = hcpProfiles.flatMap((profile, index) => {
+  const edges: ExpertiseEdge[] = [];
+  const prescribing = prescribingProfiles.find((entry) => entry.hcpId === profile.id);
+
+  if (prescribing) {
+    const topClass = topPrescribedClass(prescribing);
+    for (const { classId } of drugClasses) {
+      const share = prescribing.classShares[classId] ?? 0;
+      if (share < 0.2) continue;
+      const sources: ExpertiseSource[] = ["IMPIRICUS_SIGNAL"]; // prescribing-history evidence
+      if (profile.therapeuticAreas.some((area) => classIdByArea[area] === classId)) sources.push("SELF_DECLARED");
+      if (index % 6 === 0 && classId === topClass) sources.push("PUBLICATION"); // standout experts
+      edges.push({ hcpId: profile.id, tagId: classId, sources });
+    }
+  }
+
+  for (const condition of profile.conditionTags) {
+    const tagId = conditionTagIdByLabel[condition];
+    if (!tagId) continue;
+    const sources: ExpertiseSource[] = index % 5 === 0 ? ["SELF_DECLARED", "PUBLICATION"] : ["SELF_DECLARED"];
+    edges.push({ hcpId: profile.id, tagId, sources });
+  }
+
+  for (const topic of profile.topics) {
+    edges.push({ hcpId: profile.id, tagId: topic.toLowerCase(), sources: ["SELF_DECLARED"] });
+  }
+
+  edges.push({ hcpId: profile.id, tagId: affiliationTagIds[index % affiliationTagIds.length], sources: ["IMPIRICUS_SIGNAL"] });
+  return edges;
+});
+
+export const peerHelpProfiles: PeerHelpProfile[] = hcpProfiles.map((profile, index) => {
+  const prescribing = prescribingProfiles.find((entry) => entry.hcpId === profile.id);
+  const drugTags = drugClasses.map((entry) => entry.classId).filter((classId) => (prescribing?.classShares[classId] ?? 0) >= 0.2);
+  const conditionTags = profile.conditionTags.map((label) => conditionTagIdByLabel[label]).filter((tagId): tagId is string => Boolean(tagId));
+  const helpModes: HelpMode[] = [
+    "async_question",
+    ...(index % 2 === 0 ? (["short_call"] as HelpMode[]) : []),
+    ...(index % 3 === 0 ? (["referral_guidance"] as HelpMode[]) : []),
+  ];
+  return {
+    hcpId: profile.id,
+    offeredTagIds: [...drugTags, ...conditionTags],
+    helpModes,
+    // A few physicians have not opted into peer support, to exercise the funnel.
+    peerSupportOptIn: index % 7 !== 3,
+  };
+});
+
+function seedTrust(expertId: string, tagId: string, requesterIds: string[], usefulness: number): TrustEdge[] {
+  return requesterIds.map((fromHcpId) => ({
+    fromHcpId,
+    toHcpId: expertId,
+    tagId,
+    interactions: 1,
+    successfulConnections: 1,
+    usefulnessScore: usefulness,
+    lastConnectedAt: "2026-09-20T12:00:00.000Z",
+  }));
+}
+
+// Seed a few validated experts so the demo starts with visible trust and the
+// bandit will later have informative priors.
+export const trustEdges: TrustEdge[] = [
+  ...seedTrust("hcp-1", "sglt2", ["hcp-16", "hcp-19", "hcp-22", "hcp-25"], 0.95),
+  ...seedTrust("hcp-1", "renal_impairment", ["hcp-16", "hcp-19"], 0.9),
+  ...seedTrust("hcp-13", "sglt2", ["hcp-28", "hcp-31"], 0.8),
+  ...seedTrust("hcp-13", "renal_impairment", ["hcp-28"], 0.8),
+  ...seedTrust("hcp-7", "sglt2", ["hcp-34"], 0.7),
+  ...seedTrust("hcp-2", "glp1", ["hcp-5", "hcp-11", "hcp-14"], 0.9),
 ];

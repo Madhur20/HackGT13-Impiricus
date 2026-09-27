@@ -180,6 +180,15 @@ type NetworkMatchResult = {
 
 Suggested collections: `expertise_tags`, `expertise_edges`, `peer_help_profiles`, `trust_edges`, `connection_feedback`. A graph database such as Neo4j is a natural production fit; the hackathon uses in-memory synthetic structures behind the data broker.
 
+### Synthetic seed fixtures (implemented)
+
+`packages/demo-seed` provides synthetic Network Graph data derived from the existing physicians and their prescribing history, exposed through the broker via `readNetworkGraph()`:
+
+- `expertiseTags`: drug-class, condition, topic, and affiliation tags.
+- `expertiseEdges`: drug-class edges from prescribing history (`IMPIRICUS_SIGNAL`, corroborated by declared areas), condition and topic edges from declared experience, periodic `PUBLICATION` evidence for standout experts, and affiliation edges.
+- `peerHelpProfiles`: offered tags, help modes, and peer-support opt-in (a few opted out to exercise the funnel).
+- `trustEdges`: seeded successful connections for a few validated experts so the demo starts with visible trust and the bandit has informative priors.
+
 ## 8. Safety, privacy, and invariants
 
 - **Zero patient data.** The graph stores professional information only: identity, specialty, expertise tags, evidence, location, affiliations, availability, help preferences, successful-connection edges, and feedback outcomes. It never stores patient name, DOB, MRN, records, labs, notes, or patient-specific diagnosis.

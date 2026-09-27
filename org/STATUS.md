@@ -7,9 +7,9 @@ Last updated: 2026-09-26.
 - **Stage:** Functional browser-first hackathon prototype.
 - **Repository contents:** Product/system plans, maintained context, contribution guidance, module boundaries, and a TypeScript workspace.
 - **Application code:** React/Vite web shell with Home, Practice Mirror, Doctor Connect, physician-facing Ledger Updates, and a shared Audit view.
-- **Tests:** Twenty-three deterministic tests across cohort comparison, matching, policy, data-broker, update filtering, semantic-diff, peer domain clustering/discovery, and Network Graph expertise/trust matching and learning behavior.
+- **Tests:** Twenty-five deterministic tests across cohort comparison, matching, policy, data-broker, update filtering, semantic-diff, peer domain clustering/discovery, and Network Graph expertise/trust matching and learning behavior (including validation on synthetic graph fixtures).
 - **Demo readiness:** Core click paths work from synthetic seed data and the production bundle builds. The simplified physician screens pass headless Chrome desktop review; hands-on mobile interaction QA remains open.
-- **Data:** Thirty-six synthetic HCP profiles, prescribing fixtures, three reviewed-update fixtures, client-scope fields, consent failure cases, and a fictional versioned policy.
+- **Data:** Thirty-six synthetic HCP profiles, prescribing fixtures, per-physician prescribing vectors, Network Graph fixtures (expertise tags/edges, peer-help profiles, seeded trust edges), three reviewed-update fixtures, client-scope fields, consent failure cases, and a fictional versioned policy.
 - **Deployment:** Local Vite build only; no hosted deployment or backend is configured.
 
 Plans remain broader than the prototype. Do not infer production integrations, legal approval, real credentialing, or durable storage from the working UI.
@@ -45,6 +45,13 @@ The next demo-hardening milestone is complete when:
 - the team has made and recorded the local-only versus hosted-demo decision.
 
 ## Iteration log
+
+### 2026-09-26 — Synthetic Network Graph data + validation (RL step 1: data first)
+
+- **Changed:** Added synthetic Network Graph fixtures to `demo-seed` derived from the existing physicians and their prescribing history: 16 expertise tags (drug classes, conditions, topics, affiliations), evidence-bearing `expertiseEdges` (prescribing → `IMPIRICUS_SIGNAL`, declared corroboration, periodic `PUBLICATION` standouts), `peerHelpProfiles` (offered tags, help modes, opt-in), and seeded `trustEdges` for a few validated experts. Added a governed `readNetworkGraph` broker read (`PEER_MATCHING`, returns fresh copies) re-exported from `relay-core`.
+- **Verified:** `npm run check` passes TypeScript validation, 25 tests (2 new), and the production build. New tests run `matchPeers` on the synthetic data (validated expert ranks first for an SGLT2 + renal need; all matches eligible; funnel narrows) and confirm the learning flywheel raises a peer's score after positive feedback. The new `demo-seed`/broker code is now covered by `tsc -b`.
+- **Open:** Trust is still a feedback-weighted average, not yet the chosen contextual bandit. Not wired to the UI or audit yet.
+- **Next (RL step 2):** Replace the trust-average with a contextual bandit — Thompson sampling with a deterministic UCB fallback — update `docs/network-graph-plan.md` and `org/DECISIONS.md`, and test the RL policy (exploration/exploitation, reproducibility) on this synthetic data.
 
 ### 2026-09-26 — User-facing README rewrite
 
