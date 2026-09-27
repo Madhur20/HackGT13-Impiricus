@@ -1,13 +1,57 @@
 import type { AllowedField, DrugClassId, DrugClassRef, ExpertiseEdge, ExpertiseSource, ExpertiseTag, HcpProfile, HelpMode, PeerHelpProfile, Persona, PracticeUpdate, PrescribingProfile, PrescribingStat, TrustEdge } from "@relay/domain";
 
 export const personas: Persona[] = [
-  { id: "hcp-maya", name: "Dr. Maya Chen", role: "hcp", subtitle: "Endocrinology · Atlanta, GA", initials: "MC" },
-  { id: "hcp-jordan", name: "Dr. Jordan Brooks", role: "hcp", subtitle: "Internal Medicine · Decatur, GA", initials: "JB" },
+  { id: "hcp-maya", name: "Dr. Maya Chen", role: "hcp", subtitle: "Endocrinology · Atlanta, GA", initials: "MC", specialty: "Endocrinology", location: "Atlanta, GA", credentialStatus: "verified", npi: "1234567890" },
+  { id: "hcp-jordan", name: "Dr. Jordan Brooks", role: "hcp", subtitle: "Internal Medicine · Decatur, GA", initials: "JB", specialty: "Internal Medicine", location: "Decatur, GA", credentialStatus: "verified", npi: "1357924680" },
+  { id: "hcp-1", name: "Dr. Elena Ruiz", role: "hcp", subtitle: "Endocrinology · Savannah, GA", initials: "ER", specialty: "Endocrinology", location: "Savannah, GA", credentialStatus: "verified", npi: "1098765432" },
 ];
 
 const specialties = ["Endocrinology", "Internal Medicine", "Family Medicine"];
 const states = ["GA", "GA", "GA", "NC", "FL"];
 const areas = ["GLP-1 therapies", "SGLT2 inhibitors", "Diabetes management"];
+
+const accountProfiles: HcpProfile[] = [
+  {
+    id: "hcp-maya",
+    displayName: "Dr. Maya Chen",
+    specialty: "Endocrinology",
+    state: "GA",
+    therapeuticAreas: ["GLP-1 therapies", "SGLT2 inhibitors", "Diabetes management"],
+    topics: ["Initiation", "Monitoring", "Switching", "Tolerability"],
+    conditionTags: ["Renal impairment", "Cardiovascular disease", "Diabetes"],
+    availability: "available",
+    verified: true,
+    matchingConsent: true,
+    contactConsent: true,
+    responseReliability: 0.98,
+    timezoneFit: 1,
+    provenance: [
+      { label: "Public registry", source: "NPPES" },
+      { label: "Physician provided", source: "HCP_DECLARED" },
+      { label: "Permitted for matching", source: "IMPIRICUS_INTERACTION" },
+    ],
+  },
+  {
+    id: "hcp-jordan",
+    displayName: "Dr. Jordan Brooks",
+    specialty: "Internal Medicine",
+    state: "GA",
+    therapeuticAreas: ["GLP-1 therapies", "SGLT2 inhibitors", "Diabetes management"],
+    topics: ["Monitoring", "Switching", "Tolerability"],
+    conditionTags: ["Cardiovascular disease", "Diabetes"],
+    availability: "available",
+    verified: true,
+    matchingConsent: true,
+    contactConsent: true,
+    responseReliability: 0.94,
+    timezoneFit: 1,
+    provenance: [
+      { label: "Public registry", source: "NPPES" },
+      { label: "Physician provided", source: "HCP_DECLARED" },
+      { label: "Permitted for matching", source: "IMPIRICUS_INTERACTION" },
+    ],
+  },
+];
 
 const baseHcpProfiles: HcpProfile[] = Array.from({ length: 36 }, (_, index) => ({
   id: `hcp-${index + 1}`,
@@ -70,7 +114,7 @@ const featuredExperts: HcpProfile[] = featuredConfig.map((expert) => ({
   ],
 }));
 
-export const hcpProfiles: HcpProfile[] = [...baseHcpProfiles, ...featuredExperts];
+export const hcpProfiles: HcpProfile[] = [...accountProfiles, ...baseHcpProfiles, ...featuredExperts];
 
 // Explicit, strongly corroborated edges (drug class + every condition) with a
 // high derived strength so a validated featured expert scores ~90%+.
@@ -87,6 +131,25 @@ const featuredHelpProfiles: PeerHelpProfile[] = featuredConfig.map((expert) => (
   hcpId: expert.id,
   offeredTagIds: [expert.drugClass, ...FEATURED_CONDITION_TAG_IDS],
   helpModes: ["async_question", "short_call", "referral_guidance"],
+  peerSupportOptIn: true,
+}));
+
+const accountExpertiseEdges: ExpertiseEdge[] = [
+  { hcpId: "hcp-maya", tagId: "sglt2", sources: ["IMPIRICUS_SIGNAL", "SELF_DECLARED"], strength: 0.9 },
+  { hcpId: "hcp-maya", tagId: "glp1", sources: ["IMPIRICUS_SIGNAL", "SELF_DECLARED"], strength: 0.92 },
+  { hcpId: "hcp-maya", tagId: "diabetes", sources: ["SELF_DECLARED", "SPECIALTY"], strength: 0.88 },
+  { hcpId: "hcp-maya", tagId: "renal_impairment", sources: ["SELF_DECLARED", "PUBLICATION"], strength: 0.9 },
+  { hcpId: "hcp-maya", tagId: "cardiovascular_disease", sources: ["SELF_DECLARED"], strength: 0.72 },
+  { hcpId: "hcp-jordan", tagId: "sglt2", sources: ["IMPIRICUS_SIGNAL", "SELF_DECLARED"], strength: 0.86 },
+  { hcpId: "hcp-jordan", tagId: "glp1", sources: ["IMPIRICUS_SIGNAL", "SELF_DECLARED"], strength: 0.84 },
+  { hcpId: "hcp-jordan", tagId: "diabetes", sources: ["SELF_DECLARED", "SPECIALTY"], strength: 0.82 },
+  { hcpId: "hcp-jordan", tagId: "cardiovascular_disease", sources: ["SELF_DECLARED"], strength: 0.74 },
+];
+
+const accountHelpProfiles: PeerHelpProfile[] = accountProfiles.map((profile) => ({
+  hcpId: profile.id,
+  offeredTagIds: accountExpertiseEdges.filter((edge) => edge.hcpId === profile.id).map((edge) => edge.tagId),
+  helpModes: ["async_question", "short_call"],
   peerSupportOptIn: true,
 }));
 
@@ -117,6 +180,12 @@ export const mirrorClassesByPersona: Record<string, typeof mirrorClasses> = {
     { id: "glp1", label: "GLP-1 receptor agonists", subject: 22, median: 27, q1: 23, q3: 34 },
     { id: "dpp4", label: "DPP-4 inhibitors", subject: 17, median: 14, q1: 9, q3: 19 },
     { id: "basal", label: "Basal insulin", subject: 28, median: 22, q1: 18, q3: 28 },
+  ],
+  "hcp-1": [
+    { id: "sglt2", label: "SGLT2 inhibitors", subject: 23, median: 24, q1: 19, q3: 29 },
+    { id: "glp1", label: "GLP-1 receptor agonists", subject: 34, median: 29, q1: 24, q3: 35 },
+    { id: "dpp4", label: "DPP-4 inhibitors", subject: 10, median: 14, q1: 9, q3: 18 },
+    { id: "basal", label: "Basal insulin", subject: 19, median: 21, q1: 17, q3: 27 },
   ],
 };
 
@@ -273,6 +342,7 @@ function topPrescribedClass(profile: PrescribingProfile): DrugClassId {
 }
 
 export const expertiseEdges: ExpertiseEdge[] = [
+  ...accountExpertiseEdges,
   ...baseHcpProfiles.flatMap((profile, index) => {
   const edges: ExpertiseEdge[] = [];
   const prescribing = prescribingProfiles.find((entry) => entry.hcpId === profile.id);
@@ -307,6 +377,7 @@ export const expertiseEdges: ExpertiseEdge[] = [
 ];
 
 export const peerHelpProfiles: PeerHelpProfile[] = [
+  ...accountHelpProfiles,
   ...baseHcpProfiles.map((profile, index) => {
   const prescribing = prescribingProfiles.find((entry) => entry.hcpId === profile.id);
   const drugTags = drugClasses.map((entry) => entry.classId).filter((classId) => (prescribing?.classShares[classId] ?? 0) >= 0.2);

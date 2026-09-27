@@ -14,6 +14,16 @@ describe("demo data broker", () => {
     expect(readConnectCandidates().data.every((profile) => profile.verified && profile.matchingConsent && profile.availability !== "unavailable")).toBe(true);
   });
 
+  it("uses the authenticated physician identity to exclude self and expose the other account", () => {
+    const elenaCandidates = readConnectCandidates({ actorId: "hcp-1" }).data.map((profile) => profile.id);
+    const mayaCandidates = readConnectCandidates({ actorId: "hcp-maya" }).data.map((profile) => profile.id);
+
+    expect(elenaCandidates).toContain("hcp-maya");
+    expect(elenaCandidates).not.toContain("hcp-1");
+    expect(mayaCandidates).toContain("hcp-1");
+    expect(mayaCandidates).not.toContain("hcp-maya");
+  });
+
   it("returns only updates permitted for the physician specialty", () => {
     const updates = readPracticeUpdates({ actorId: "hcp-maya", specialty: "Endocrinology" }).data;
 

@@ -41,9 +41,11 @@ The correct claim is **risk reduction through data minimization and controlled v
 - Reusable-answer search before creating a live request.
 - Eligibility filtering and ranked peer matches.
 - “Why this match” explanation with provenance.
-- Request, accept/decline, and a fully structured response with no free text in the hackathon version.
+- Separate requester and recipient Inbox surfaces.
+- Request delivery between signed-in synthetic accounts, accept/decline, and a fully structured response with no free text in the hackathon version.
 - Mutual-consent contact reveal.
 - One safety stop state.
+- Browser-local account sign-in and profile-matched sign-up for the prototype.
 
 ### Exclude
 
@@ -121,6 +123,14 @@ Every transition writes an audit event. Contact information is returned only fro
 10. Either physician may request continued contact. The platform reveals selected contact information only after both consent.
 
 For the hackathon, step 9 uses structured fields only. Keep the optional note as a post-hackathon experiment, not a partially secured demo feature.
+
+### Implemented browser preview boundary
+
+The requester creates a consult in Doctor Connect using the existing hard-filter-first Network Graph and deterministic UCB contextual-bandit ranking. The selected physician receives the structured request only in their signed-in `/inbox`, where they can accept or decline it, submit a controlled response, and independently approve email disclosure. Returning requesters are restored to an answered request and see an unread notification.
+
+The active physician comes from a browser-local account session tied to a stable synthetic HCP ID. Sign-up uses NPI only to match an existing eligible profile; it does not establish credential verification. Consult snapshots retain the physicians' stable IDs, display names, specialties, location/state, and synthetic verification status, but do not copy hidden email addresses into the request. Email is resolved from the account directory only after the deterministic contact policy confirms both approvals.
+
+`localStorage` and `BroadcastChannel` provide same-browser persistence and cross-tab updates for the hackathon. This is not production authentication, authorization, persistence, or transport. A deployment requires protected server sessions, authenticated APIs, durable storage, server-enforced transitions and consent checks, and a realtime channel.
 
 ## 7. Reusable answer library
 

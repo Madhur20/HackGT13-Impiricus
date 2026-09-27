@@ -22,6 +22,6 @@ export function DemoNotice() {
   return <div className="demo-notice"><Sparkles size={16} /><span><strong>Demo</strong> · Synthetic data only</span></div>;
 }
 
-export function LockedValue({ revealed, value = "maya.chen@demo.example" }: { revealed: boolean; value?: string }) {
-  return <div className={revealed ? "locked-value revealed" : "locked-value"}><LockKeyhole size={18} />{revealed ? value : "Contact details remain hidden"}</div>;
+export function LockedValue({ revealed, value }: { revealed: boolean; value?: string }) {
+  return <div className={revealed ? "locked-value revealed" : "locked-value"}><LockKeyhole size={18} />{revealed ? (value ?? "Approved email is unavailable") : "Contact details remain hidden"}</div>;
 }

@@ -61,7 +61,7 @@ Generative AI (Gemini) sits on top as an **explanation layer only** — it turns
 
 Relay stores a doctor's **professional** information only — identity, specialty, expertise, prescribing history, region, affiliations, availability, help preferences, and successful-connection outcomes. It never stores patient names, records, diagnoses, or any patient-level data.
 
-- **In this prototype**, all physician data is deterministic **synthetic** data. It lives in memory, is served only through Relay's purpose-aware data broker, is never persisted, and never leaves the machine. The demo runs fully offline.
+- **In this prototype**, all physician and product data is deterministic **synthetic** data. Seed data lives in memory behind Relay's purpose-aware data broker. The local account session and structured consult lifecycle use browser `localStorage` plus `BroadcastChannel` so two seeded physician accounts can complete one same-browser flow; there is no hosted identity service or backend persistence. The prototype runs fully offline after dependencies are installed.
 - **In production**, doctor data lives in two stores behind the same governance layer: a **document database** (MongoDB) for profiles, consent, provenance, requests, responses, policy, and audit records; and a **graph database** (Neo4j) for the Network Graph itself, because matching constantly follows relationships from a doctor to their expertise, evidence, availability, and prior successful connections.
 
 Every read and write passes through the data broker and a deterministic policy engine. Consent is purpose-specific, provenance is attached to every field, every decision is recorded in an append-only audit trail, and no patient-level data is ever stored.
@@ -75,9 +75,17 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite. Use `npm run check` to run TypeScript validation, product-logic tests, and the production build.
+Open the local URL printed by Vite and sign in with one of the seeded physician accounts. Use `npm run check` to run TypeScript validation, product-logic tests, and the production build.
 
-The primary demo paths are `/mirror`, `/connect`, `/ledger`, and `/audit`. The persona switcher in the floating header switches between synthetic physician profiles.
+| Physician | Email | Password |
+|---|---|---|
+| Dr. Elena Ruiz | `elena.ruiz@relay.health` | `Relay2026!` |
+| Dr. Maya Chen | `maya.chen@relay.health` | `Relay2026!` |
+| Dr. Jordan Brooks | `jordan.brooks@relay.health` | `Relay2026!` |
+
+The primary product paths are `/mirror`, `/connect`, `/inbox`, `/ledger`, and `/audit`. The signed-in account determines the active physician. To test the two-sided flow, send a request from one seeded account, sign out, sign in as the selected physician, answer it in Inbox, then return to the requester account.
+
+The sign-up form can bind another browser-local account to an existing synthetic physician profile by NPI. NPI matching is not credential verification. Browser-local password hashing and storage are hackathon-only boundaries; a deployment requires server-side authentication, protected sessions, durable consult storage, server-side transition checks, and realtime delivery.
 
 ## Start here
 

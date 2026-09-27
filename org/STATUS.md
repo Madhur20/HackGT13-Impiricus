@@ -6,10 +6,10 @@ Last updated: 2026-09-26.
 
 - **Stage:** Functional browser-first hackathon prototype.
 - **Repository contents:** Product/system plans, maintained context, contribution guidance, module boundaries, and a TypeScript workspace.
-- **Application code:** React/Vite web shell with Home, Practice Mirror, Doctor Connect, physician-facing Ledger Updates, and a shared Audit view.
-- **Tests:** Deterministic tests across cohort comparison, matching, policy, data-broker (including update filtering/personalization and specialist eligibility), semantic-diff, peer domain clustering/discovery, and Network Graph expertise/trust matching, contextual-bandit ranking (UCB determinism/exploration, seeded Thompson reproducibility, eligibility), and learning behavior (validated on synthetic graph fixtures).
-- **Demo readiness:** Core click paths work from synthetic seed data and the production bundle builds. The redesigned physician screens (shared shell, Practice Mirror with peer discovery, Doctor Connect, Updates) pass headless Chrome desktop review; hands-on mobile interaction QA remains open.
-- **Data:** Thirty-six synthetic HCP profiles, prescribing fixtures, per-physician prescribing vectors and persona-specific Mirror data, Network Graph fixtures (expertise tags/edges, peer-help profiles, seeded trust edges), three reviewed medicine-update fixtures, consent failure cases, and a fictional versioned policy.
+- **Application code:** React/Vite web shell with a DocUpdate-compatible local sign-in/sign-up screen, Home, Practice Mirror, RL-backed Doctor Connect, a recipient Inbox, physician-facing Ledger Updates, and a shared Audit view.
+- **Tests:** 35 deterministic tests across local credential validation, consult unread state, cohort comparison, matching, policy, account-aware data-broker reads, update filtering/personalization and specialist eligibility, semantic-diff, peer domain clustering/discovery, and Network Graph expertise/trust matching, contextual-bandit ranking (UCB determinism/exploration, seeded Thompson reproducibility, eligibility), account-to-account routing, and learning behavior.
+- **Demo readiness:** Core click paths work from synthetic seed data and the production bundle builds. Headless Chrome checks confirm the new sign-in screen, authenticated Doctor Connect, Inbox, and the five-stage UCB match funnel render without a Vite error overlay at 1440 × 1000; hands-on mobile and full two-account interaction QA remain open.
+- **Data:** Forty-four synthetic HCP directory profiles (36 baseline, six featured experts, and two additional account profiles), prescribing fixtures, per-physician prescribing vectors and account-specific Mirror data, Network Graph fixtures (expertise tags/edges, peer-help profiles, seeded trust edges), three reviewed medicine-update fixtures, consent failure cases, and a fictional versioned policy.
 - **Deployment:** Local Vite build only; no hosted deployment or backend is configured.
 
 Plans remain broader than the prototype. Do not infer production integrations, legal approval, real credentialing, or durable storage from the working UI.
@@ -19,8 +19,8 @@ Plans remain broader than the prototype. Do not infer production integrations, l
 Harden the working prototype for the hackathon demo:
 
 1. Perform hands-on responsive QA in Chrome and on a phone-sized device.
-2. Add browser-level tests for the Mirror → Connect handoff, consent revocation, double-consent contact reveal, and Updates → Connect handoff.
-3. Add a deterministic demo reset for page-local state, not only persona and audit state.
+2. Add browser-level tests for sign-in, the two-account Connect → Inbox → Connect lifecycle, consent revocation, double-consent contact reveal, Mirror → Connect, and Updates → Connect.
+3. Add a deterministic reset for browser-local account, consult, page, and audit state.
 4. Decide whether the hackathon needs a minimal API/persistence layer or should remain an intentionally local prototype.
 5. Prepare deployment and a concise scripted demo run.
 
@@ -45,6 +45,13 @@ The next demo-hardening milestone is complete when:
 - the team has made and recorded the local-only versus hosted-demo decision.
 
 ## Iteration log
+
+### 2026-09-26 — Ported the newer GPT-POC account and Inbox UI while preserving RL matching
+
+- **Changed:** Brought the newer `origin/GPT-POC` DocUpdate-style sign-in/sign-up, account-bound shell, Inbox, unread badges, consult delivery, structured answer, and mutual email-approval UI onto `logic`. Integrated that lifecycle into the existing Network Graph matcher rather than restoring the older fixed scorer: candidate eligibility, the five-stage funnel, deterministic UCB ranking, peer-fit scores, exploration metadata, and the live consent recomputation remain intact. Added account-aware candidate reads and synthetic graph evidence for the Maya/Jordan account profiles. Kept required synthetic-data labels that the divergent POC commit had removed.
+- **Verified:** `npm run check` passes TypeScript validation, 35 tests, and the production build. Headless Chrome renders of sign-in, authenticated Connect, and Inbox were reviewed at 1440 × 1000. Exercising Connect produced six RL-ranked match cards, five funnel stages, peer-fit labels, meaningful content, and no Vite error overlay. A seed-data test confirms Elena's default UCB query keeps Maya in the six displayed matches for the two-account flow.
+- **Open:** Full two-account browser automation, hands-on mobile QA, and production authentication/persistence/realtime transport remain open. The default query's six displayed peers all have prior trust evidence, so its exploration badge is not visible even though the UCB exploration logic and tests remain unchanged.
+- **Next:** Add one browser test that signs in as a requester, sends to a seeded account, signs in as the recipient to answer, and returns to verify unread state plus mutual contact disclosure.
 
 ### 2026-09-26 — Expanded seed data with featured experts for strong per-category matches
 

@@ -165,7 +165,7 @@ Jurisdiction examples are synthetic and are not legal advice.
 
 ### Front end
 
-One responsive physician web application exposes Overview, Practice Mirror, Doctor Connect, and Updates. The synthetic persona switcher stands in for production authentication.
+One responsive physician web application exposes Overview, Practice Mirror, Doctor Connect, a recipient Inbox, and Updates. In the hackathon build, a browser-local account session supplies the active synthetic HCP identity; changing physicians requires sign-out and sign-in. The same-browser request lifecycle synchronizes with `localStorage` and `BroadcastChannel`. Production must replace that preview boundary with server-side authentication, protected sessions, durable consult storage, server-side policy enforcement, and realtime delivery.
 
 The presentation follows the supplied DocUpdate references:
 

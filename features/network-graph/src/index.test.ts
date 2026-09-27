@@ -156,6 +156,21 @@ describe("network graph on synthetic seed data", () => {
     const afterScore = after.matches.find((match) => match.profile.id === target)?.score ?? 0;
     expect(afterScore).toBeGreaterThan(beforeScore);
   });
+
+  it("keeps a second seeded account available for the two-physician request flow", () => {
+    const result = matchPeers({
+      need: buildPeerNeed({ expertiseTagIds: ["sglt2", "renal_impairment"], helpMode: "async_question" }),
+      candidates: hcpProfiles.filter((profile) => profile.id !== "hcp-1"),
+      expertiseEdges: seedExpertiseEdges,
+      peerHelpProfiles: seedPeerHelpProfiles,
+      trustEdges: seedTrustEdges,
+      tags: seedExpertiseTags,
+      limit: 6,
+      policy: "ucb",
+    });
+
+    expect(result.matches.some((match) => match.profile.id === "hcp-maya")).toBe(true);
+  });
 });
 
 describe("contextual bandit policies", () => {

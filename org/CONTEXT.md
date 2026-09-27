@@ -27,7 +27,7 @@ The hackathon prototype must prove direct HCP value, visible consent effects, ev
 
 | Priority | Area | Required proof |
 |---|---|---|
-| P0 | Shared foundation | Persona/role switching, purpose and consent evaluation, provenance labels, data broker, and audit events |
+| P0 | Shared foundation | Account-bound synthetic physician identity, purpose and consent evaluation, provenance labels, data broker, and audit events |
 | P0 | Doctor Connect | Structured question, hard eligibility filters, transparent ranking, request/response flow, and mutual contact consent |
 | P1 | Practice Mirror | One defensible cohort comparison with visible limits and no quality claim |
 | P1 | Ledger | One reviewed before/after drug-product update with relevance reasons, four specialist options, and a governed Connect handoff |
@@ -73,7 +73,9 @@ Ledger stores an immutable reviewed change record with the company, product, pri
 
 ## Shared system design
 
-Use one responsive web application with physician navigation for Mirror, Connect, and Updates, plus a shared Audit view. Use a seeded persona switcher instead of production authentication. Switching physicians must change the synthetic Mirror values, default Connect context, and Updates ordering/relevance so the demo never presents one shared dataset as two people.
+Use one responsive web application with physician navigation for Mirror, Connect, a recipient Inbox, and Updates, plus a shared Audit view. The hackathon build binds the active physician to a browser-local account session; changing physicians requires sign-out and sign-in. Each synthetic account receives distinct Mirror values, Connect requests, Inbox items, and Updates relevance so the prototype never presents one shared dataset as two people.
+
+Doctor Connect requests have explicit requester and recipient surfaces. The requester selects from peers returned by the hard-filter-first contextual-bandit matcher; the recipient accepts or declines and answers only from their signed-in Inbox. Contact email is resolved only after both physicians approve and the deterministic policy check allows disclosure. `localStorage` plus `BroadcastChannel` provides same-browser persistence and updates for the hackathon only. Production requires server-side authentication, protected sessions, durable storage, server-enforced transitions and consent, and realtime delivery.
 
 The hackathon should be a modular monolith with conceptual modules for profiles, policy, Mirror, Connect, Ledger, explanations, and audit. The shared, importable core exposes behavior equivalent to:
 

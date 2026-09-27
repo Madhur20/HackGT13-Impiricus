@@ -4,6 +4,14 @@ This file records durable decisions. New entries should include a date, status, 
 
 ## Accepted baseline decisions
 
+### 2026-09-26 — Account-bound local identity and two-sided consult preview
+
+- **Status:** Accepted
+- **Decision:** Bind the active synthetic physician to a browser-local account session and require sign-out/sign-in to change physicians. Add a recipient Inbox for accept/decline, structured answering, unread state, and independent contact approval. Persist and synchronize the hackathon consult lifecycle with `localStorage` and `BroadcastChannel`; resolve account email only after both physicians approve and the deterministic contact policy allows disclosure.
+- **Reason:** The prototype needs to demonstrate a real requester-to-recipient workflow without weakening the existing Network Graph eligibility and contextual-bandit ranking. Account separation makes identity, unread state, and mutual contact consent visible while keeping the offline hackathon build self-contained.
+- **Boundary:** Browser-local password hashing, sessions, consult state, and cross-tab delivery are not production security or persistence. Deployment requires server-side authentication, credential verification, protected sessions, authenticated APIs, durable storage, server-enforced transitions and consent checks, and realtime delivery. NPI matching remains identity matching, not credential verification.
+- **Affected:** Web account entry and shell, Doctor Connect, Inbox, consult state, account-aware broker reads, synthetic account profiles, tests, and product documentation.
+
 ### 2026-09-26 — Relay Network Graph is the learning matching substrate for Doctor Connect
 
 - **Status:** Accepted
@@ -72,7 +80,7 @@ This file records durable decisions. New entries should include a date, status, 
 
 ### 2026-09-26 — Persona switching changes physician data
 
-- **Status:** Accepted
+- **Status:** Superseded by the account-bound local identity decision above
 - **Decision:** Each synthetic HCP persona receives distinct Practice Mirror values, default Doctor Connect context, and Updates ordering/relevance copy. Updates keeps one compact selector and a focused right-side detail panel with previous/next navigation, and specialist counts are derived from eligible returned profiles.
 - **Reason:** A persona switch must demonstrate a real change in physician context, and the focused Updates layout reduces repetition while keeping the reviewed comparison visible.
 - **Affected:** Demo seed, data broker, Practice Mirror, Doctor Connect, Updates, tests, and presentation guidance.

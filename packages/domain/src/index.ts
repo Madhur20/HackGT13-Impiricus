@@ -14,6 +14,10 @@ export type Persona = {
   role: Role;
   subtitle: string;
   initials: string;
+  specialty: string;
+  location: string;
+  credentialStatus: "verified";
+  npi: string;
 };
 
 export type Provenance = {
@@ -43,6 +47,37 @@ export type QuestionSelection = {
   topic: string;
   populationBand: string;
   conditionTag: string;
+};
+
+export type StructuredPeerAnswer = {
+  approach: string;
+  monitoring: string[];
+  escalation: string;
+  answeredAt: string;
+};
+
+export type ConsultRequest = {
+  id: string;
+  requesterId: string;
+  requesterName: string;
+  requesterSpecialty: string;
+  requesterLocation: string;
+  requesterCredentialStatus: "verified";
+  recipientId: string;
+  recipientName: string;
+  recipientSpecialty: string;
+  recipientState: string;
+  recipientCredentialStatus: "verified";
+  question: string;
+  selection: QuestionSelection;
+  status: "pending" | "accepted" | "declined" | "answered";
+  createdAt: string;
+  updatedAt: string;
+  requesterContactApproved: boolean;
+  recipientContactApproved: boolean;
+  requesterReadAt?: string;
+  recipientReadAt?: string;
+  answer?: StructuredPeerAnswer;
 };
 
 export type MatchResult = {
