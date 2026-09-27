@@ -539,6 +539,14 @@ h1, h2, .welcome-copy h1, .page-heading h1, .editorial-heading h2, .change-narra
 .welcome-video { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 .welcome-video-shade { position: absolute; inset: 0; z-index: 1; background: linear-gradient(rgba(242, 253, 255, .28) 0%, #f2fdff 100%); pointer-events: none; }
 .welcome-panel.has-video .welcome-signal { display: none; }
+/* Unread notifications: a dot plus heavier name until the physician opens the item. */
+.inbox-item.unread { border-color: #c9bbf5; }
+.inbox-item.unread strong { font-weight: 800; }
+.unread-dot { width: 8px; height: 8px; margin-right: 7px; display: inline-block; vertical-align: 1px; border-radius: 50%; background: #e13f7e; }
+.nav-item .nav-count { margin-left: 6px; }
+.my-questions { padding: 28px; }
+.my-questions .inbox-items { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .home-actions { grid-template-columns: repeat(3, 1fr); gap: 28px; }
 .simple-action-card { min-height: 210px; padding: 27px 3px; grid-template-columns: 48px minmax(0,1fr) 22px; border: 0; border-top: 1px solid #cadde2; border-radius: 0; background: transparent; box-shadow: none; }
 .simple-action-card:hover { transform: translateY(-3px); box-shadow: none; }

@@ -154,6 +154,17 @@ export function ConnectPage() {
     setStep(0);
   };
 
+  // Every question this physician has sent, so each unread answer counted by the nav badge can be opened.
+  const myRequests = useMemo(
+    () => requests.filter((request) => request.requesterId === persona.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    [requests, persona.id],
+  );
+
+  const openRequest = (id: string) => {
+    window.localStorage.setItem(activeRequestStorageKey, id);
+    setActiveRequestId(id);
+  };
+
   return <div className="stack-lg">
     <PageHeading eyebrow="Doctor Connect" title="Ask another physician" description="Choose a topic. Relay will help you phrase the question and find an opted-in peer." />
 
@@ -196,5 +207,17 @@ export function ConnectPage() {
       <aside className="panel contact-panel"><LockKeyhole size={24} /><h2>Continue as colleagues</h2><p>Contact information is revealed only after both physicians independently approve the selected channel.</p><div className="consent-row"><span><UserRoundCheck size={18} />Your approval</span><button className={activeRequest.requesterContactApproved ? "consent-button approved" : "consent-button"} onClick={toggleRequesterContact}>{activeRequest.requesterContactApproved ? "Approved" : "Approve email"}</button></div><div className="consent-row"><span><BadgeCheck size={18} />Peer approval</span><span className={activeRequest.recipientContactApproved ? "consent-state approved" : "consent-state"}>{activeRequest.recipientContactApproved ? "Approved" : "Waiting"}</span></div><LockedValue revealed={contactRevealed} value={recipientEmail} /><div className="contact-disclosure">Communication occurs outside Relay and is not monitored here. Professional, privacy, and organizational obligations continue to apply.</div></aside>
       <div className="response-actions"><button className="button secondary" onClick={startAnotherQuestion}>Start another question</button></div>
     </div> : null}
+
+    {myRequests.length > 0 ? <section className="panel my-questions" aria-label="Your questions">
+      <div className="panel-heading"><div><span>Your questions</span><h2>{myRequests.length} sent</h2></div></div>
+      <div className="inbox-items">{myRequests.map((request) => {
+        const unread = request.status === "answered" && !request.requesterReadAt;
+        return <button type="button" className={["inbox-item", request.id === activeRequest?.id && "active", unread && "unread"].filter(Boolean).join(" ")} onClick={() => openRequest(request.id)} key={request.id}>
+          <span className="requester-avatar">{request.recipientName.split(" ").slice(1, 3).map((word) => word[0]).join("")}</span>
+          <span><strong>{unread ? <><i className="unread-dot" aria-hidden="true" /><span className="sr-only">New answer: </span></> : null}{request.recipientName}</strong><small>{request.selection.therapeuticArea} · {request.selection.topic}</small><time>{new Date(request.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</time></span>
+          <StatusBadge tone={request.status === "declined" ? "blocked" : request.status === "pending" ? "review" : "success"}>{request.status}</StatusBadge>
+        </button>;
+      })}</div>
+    </section> : null}
   </div>;
 }

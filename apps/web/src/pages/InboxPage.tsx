@@ -17,7 +17,8 @@ export function InboxPage() {
   const recipient = profiles.find((profile) => profile.id === actorId);
   const received = requests.filter((request) => request.recipientId === actorId);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selected = received.find((request) => request.id === selectedId) ?? received[0];
+  // Nothing opens automatically: a request only counts as read once the physician clicks it.
+  const selected = received.find((request) => request.id === selectedId);
   const [approach, setApproach] = useState("Review baseline context and current monitoring cadence");
   const [monitoring, setMonitoring] = useState<string[]>(["Renal trend", "Tolerance"]);
   const [escalation, setEscalation] = useState("Unexpected change or persistent symptoms");
@@ -57,9 +58,9 @@ export function InboxPage() {
       <aside className="panel inbox-list">
         <div className="panel-heading"><div><span>Received</span><h2>{received.length} {received.length === 1 ? "request" : "requests"}</h2></div></div>
         {received.length === 0 ? <div className="inbox-empty"><Inbox size={25} /><strong>No requests waiting</strong><span>New Doctor Connect requests will appear here.</span></div> : <div className="inbox-items">
-          {received.map((request) => <button className={request.id === selected?.id ? "inbox-item active" : "inbox-item"} onClick={() => setSelectedId(request.id)} key={request.id}>
+          {received.map((request) => <button className={["inbox-item", request.id === selected?.id && "active", !request.recipientReadAt && "unread"].filter(Boolean).join(" ")} onClick={() => setSelectedId(request.id)} key={request.id}>
             <span className="requester-avatar">{request.requesterName.split(" ").slice(1, 3).map((word) => word[0]).join("")}</span>
-            <span><strong>{request.requesterName}</strong><small>{request.selection.therapeuticArea} · {request.selection.topic}</small><time>{new Date(request.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</time></span>
+            <span><strong>{!request.recipientReadAt && <><i className="unread-dot" aria-hidden="true" /><span className="sr-only">Unread: </span></>}{request.requesterName}</strong><small>{request.selection.therapeuticArea} · {request.selection.topic}</small><time>{new Date(request.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</time></span>
             <StatusBadge tone={request.status === "declined" ? "blocked" : request.status === "pending" ? "review" : "success"}>{request.status}</StatusBadge>
           </button>)}
         </div>}

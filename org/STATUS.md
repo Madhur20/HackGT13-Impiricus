@@ -46,6 +46,12 @@ The next demo-hardening milestone is complete when:
 
 ## Iteration log
 
+### 2026-09-27 — Notification badges decrement only when an item is opened
+
+- **Changed:** Inbox no longer auto-opens the first request, so a request is marked read only when the physician clicks it; unread requests show a dot and heavier name. Doctor Connect gained a **Your questions** list of every request the physician sent, newest first, with a dot on unread answers; opening one restores it and marks the answer read. Previously visiting Inbox silently read one request, and answers to any request other than the single active one could never be opened, leaving the Doctor Connect badge stuck.
+- **Verified:** Browser run with two unread requests and two unread answers: Inbox 2 → visit 2 → open first 1 → reopen first 1 → open second 0; Doctor Connect 2 → visit 2 → open first 1 → open second 0; counts persist across reload. `npm run check` passes.
+- **Open:** Browser automation for this flow is not yet in the test suite.
+
 ### 2026-09-27 — Vercel deployment configuration
 
 - **Changed:** Added root Vercel configuration for the npm workspace, publishing `apps/web/dist` with a single-page application route fallback, documented the CLI deployment workflow, and excluded Vercel's local project metadata from version control.
