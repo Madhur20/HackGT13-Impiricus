@@ -151,7 +151,9 @@ function buildPrescribingProfile(hcpId: string, specialty: string, state: string
 }
 
 export const prescribingProfiles: PrescribingProfile[] = [
-  buildPrescribingProfile("hcp-maya", "Endocrinology", "GA", 1, 100),
-  buildPrescribingProfile("hcp-jordan", "Internal Medicine", "GA", 0, 200),
+  // Persona vectors are set explicitly so a physician's clustering shares match
+  // the shares they see elsewhere (e.g. Practice Mirror's class snapshot).
+  { hcpId: "hcp-maya", specialty: "Endocrinology", state: "GA", year: 2024, classShares: { sglt2: 0.18, glp1: 0.31, dpp4: 0.12, basal: 0.22, metformin: 0.17 }, totalClaims: 620 },
+  { hcpId: "hcp-jordan", specialty: "Internal Medicine", state: "GA", year: 2024, classShares: { sglt2: 0.42, glp1: 0.14, dpp4: 0.13, basal: 0.11, metformin: 0.2 }, totalClaims: 540 },
   ...hcpProfiles.map((profile, index) => buildPrescribingProfile(profile.id, profile.specialty, profile.state, index % 3, index + 1)),
 ];

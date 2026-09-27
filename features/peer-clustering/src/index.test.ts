@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { hcpProfiles, prescribingProfiles } from "@relay/demo-seed";
-import { clusterDoctorsByDomain, cosineSimilarity, suggestDomainPeers } from "./index";
+import { clusterDoctorsByDomain, cosineSimilarity, suggestDomainPeers, suggestSimilarPrescribers } from "./index";
 
 describe("clusterDoctorsByDomain", () => {
   it("is deterministic across runs with the same seed", () => {
@@ -72,6 +72,37 @@ describe("suggestDomainPeers", () => {
     const afterRevoke = suggestDomainPeers({ subjectId: "hcp-maya", profiles: prescribingProfiles, candidates: revokedCandidates, clustering });
 
     expect(afterRevoke.some((suggestion) => suggestion.profile.id === targetId)).toBe(false);
+  });
+});
+
+describe("suggestSimilarPrescribers", () => {
+  it("returns consented peers whose share for one drug is closest to the subject's", () => {
+    const suggestions = suggestSimilarPrescribers({
+      subjectId: "hcp-maya",
+      classId: "sglt2",
+      profiles: prescribingProfiles,
+      candidates: hcpProfiles,
+      limit: 4,
+      tolerance: 1,
+    });
+
+    expect(suggestions.length).toBeGreaterThan(0);
+    expect(suggestions.length).toBeLessThanOrEqual(4);
+    expect(suggestions.every((suggestion) => suggestion.profile.id !== "hcp-maya")).toBe(true);
+    expect(suggestions.every((suggestion) => suggestion.profile.verified && suggestion.profile.matchingConsent && suggestion.profile.availability !== "unavailable")).toBe(true);
+    expect(suggestions.every((suggestion) => suggestion.classId === "sglt2")).toBe(true);
+
+    // Sorted by ascending share difference (closest first).
+    const diffs = suggestions.map((suggestion) => suggestion.shareDifference);
+    expect(diffs).toEqual([...diffs].sort((a, b) => a - b));
+    expect(suggestions.every((suggestion) => suggestion.similarity >= 0 && suggestion.similarity <= 1)).toBe(true);
+  });
+
+  it("honors the tolerance window", () => {
+    const tight = suggestSimilarPrescribers({ subjectId: "hcp-maya", classId: "sglt2", profiles: prescribingProfiles, candidates: hcpProfiles, tolerance: 0.01 });
+    const wide = suggestSimilarPrescribers({ subjectId: "hcp-maya", classId: "sglt2", profiles: prescribingProfiles, candidates: hcpProfiles, tolerance: 1 });
+    expect(wide.length).toBeGreaterThanOrEqual(tight.length);
+    expect(tight.every((suggestion) => suggestion.shareDifference <= 0.01)).toBe(true);
   });
 });
 

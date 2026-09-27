@@ -7,6 +7,7 @@ import type {
   DrugClassRef,
   HcpProfile,
   PrescribingProfile,
+  SimilarPrescriberSuggestion,
 } from "@relay/domain";
 import { authorizeUse } from "@relay/relay-core";
 
@@ -235,6 +236,61 @@ function sharedDomainClasses(
     .sort((a, b) => b.combined - a.combined)
     .slice(0, 3)
     .map((entry) => entry.label);
+}
+
+// Peers whose share for one specific drug class is closest to the subject's.
+// This answers "who prescribes this drug like I do?" It is descriptive overlap,
+// gated by matching consent, and never a treatment or expertise signal.
+export function suggestSimilarPrescribers(input: {
+  subjectId: string;
+  classId: DrugClassId;
+  profiles: PrescribingProfile[];
+  candidates: HcpProfile[];
+  limit?: number;
+  tolerance?: number;
+}): SimilarPrescriberSuggestion[] {
+  const subjectProfile = input.profiles.find((profile) => profile.hcpId === input.subjectId);
+  if (!subjectProfile) return [];
+
+  const subjectShare = subjectProfile.classShares[input.classId] ?? 0;
+  const tolerance = input.tolerance ?? 0.06;
+  const classLabel = DEFAULT_CLASS_LABELS[input.classId] ?? input.classId;
+  const candidateById = new Map(input.candidates.map((candidate) => [candidate.id, candidate]));
+
+  return input.profiles
+    .filter((profile) => profile.hcpId !== input.subjectId)
+    .map((profile): SimilarPrescriberSuggestion | null => {
+      const candidate = candidateById.get(profile.hcpId);
+      if (!candidate) return null;
+      // Peer identity is only surfaced for physicians with active matching consent.
+      if (authorizeUse({ purpose: "PEER_MATCHING", candidate }).decision !== "allow") return null;
+
+      const peerShare = profile.classShares[input.classId] ?? 0;
+      const shareDifference = Math.abs(peerShare - subjectShare);
+      if (shareDifference > tolerance) return null;
+
+      const subjectPct = Math.round(subjectShare * 100);
+      const peerPct = Math.round(peerShare * 100);
+      const reasons = [
+        `Prescribes ${classLabel} at a similar share (${peerPct}% vs your ${subjectPct}%)`,
+        candidate.specialty === subjectProfile.specialty ? `Same specialty (${candidate.specialty})` : `Related specialty (${candidate.specialty})`,
+        candidate.state === subjectProfile.state ? `Same state (${candidate.state})` : `Nearby practice (${candidate.state})`,
+      ].slice(0, 3);
+
+      return {
+        profile: candidate,
+        classId: input.classId,
+        classLabel,
+        subjectShare: Number(subjectShare.toFixed(4)),
+        peerShare: Number(peerShare.toFixed(4)),
+        shareDifference: Number(shareDifference.toFixed(4)),
+        similarity: Number((1 - shareDifference).toFixed(4)),
+        reasons,
+      };
+    })
+    .filter((suggestion): suggestion is SimilarPrescriberSuggestion => suggestion !== null)
+    .sort((a, b) => a.shareDifference - b.shareDifference)
+    .slice(0, input.limit ?? 4);
 }
 
 export function suggestDomainPeers(input: {

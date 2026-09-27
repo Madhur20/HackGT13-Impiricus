@@ -192,3 +192,14 @@ export type DomainPeerSuggestion = {
   sharedDomainClasses: string[];
   reasons: string[];
 };
+
+export type SimilarPrescriberSuggestion = {
+  profile: HcpProfile;
+  classId: DrugClassId;
+  classLabel: string;
+  subjectShare: number;
+  peerShare: number;
+  shareDifference: number;
+  similarity: number;
+  reasons: string[];
+};

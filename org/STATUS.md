@@ -7,7 +7,7 @@ Last updated: 2026-09-26.
 - **Stage:** Functional browser-first hackathon prototype.
 - **Repository contents:** Product/system plans, maintained context, contribution guidance, module boundaries, and a TypeScript workspace.
 - **Application code:** React/Vite web shell with Home, Practice Mirror, Doctor Connect, physician-facing Ledger Updates, and a shared Audit view.
-- **Tests:** Sixteen deterministic tests across cohort comparison, matching, policy, data-broker, update filtering, semantic-diff, and peer domain clustering behavior.
+- **Tests:** Eighteen deterministic tests across cohort comparison, matching, policy, data-broker, update filtering, semantic-diff, and peer domain clustering/discovery behavior.
 - **Demo readiness:** Core click paths work from synthetic seed data and the production bundle builds. The simplified physician screens pass headless Chrome desktop review; hands-on mobile interaction QA remains open.
 - **Data:** Thirty-six synthetic HCP profiles, prescribing fixtures, three reviewed-update fixtures, client-scope fields, consent failure cases, and a fictional versioned policy.
 - **Deployment:** Local Vite build only; no hosted deployment or backend is configured.
@@ -45,6 +45,13 @@ The next demo-hardening milestone is complete when:
 - the team has made and recorded the local-only versus hosted-demo decision.
 
 ## Iteration log
+
+### 2026-09-26 — Peer domain discovery wired into Practice Mirror (step 2)
+
+- **Changed:** Added `suggestSimilarPrescribers` (peers with a similar share for one selected drug class) alongside the existing domain clustering, and wired a "Physicians who prescribe like you" panel into Practice Mirror. It offers two views — "Similar on {selected drug}" and "Your overall domain" (the physician's cluster) — behind an explicit reveal that logs a `PEER_MATCHING` audit event. Peer identity is surfaced only for opted-in physicians and each card hands off to Doctor Connect for contact under mutual consent. Reconciled the personas' clustering vectors with their Practice Mirror class shares so displayed values agree (Maya = GLP-1-led, SGLT2 18%).
+- **Verified:** `npm run check` passes TypeScript validation, 18 tests (2 new for `suggestSimilarPrescribers`), and the production build. Verified live in the in-IDE browser: reveal action, both tabs, consent-gated cards, consistent shares, and correct domain labels.
+- **Open:** No Gemini phrasing yet (deterministic labels only). Jordan's Mirror comparison still reuses Maya's hardcoded `mirrorClasses` chart values (pre-existing simplification); only the peer "your share" is persona-accurate.
+- **Next:** Optionally mirror the same discovery affordance inside Doctor Connect, and add a browser test for the Mirror peer-discovery reveal and tab switch.
 
 ### 2026-09-26 — Peer domain clustering (AI/ML backend, step 1)
 
