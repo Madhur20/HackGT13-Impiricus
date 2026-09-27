@@ -102,6 +102,8 @@ Derived signals must not be shown as physician-entered text, widen eligibility, 
 
 After accepting a request, the responder writes one capped general-practice answer. Relay does not check or rewrite it while the physician types. The responder explicitly selects **Check privacy & safety**, receives the same direct-identifier and safety-event scan, revises any flagged text, reviews the exact approved answer, confirms that it is non-identifying professional experience, and sends it. The consult boundary repeats validation and stores only the reviewed answer with guardrail/taxonomy version and timestamp. Temporary responder draft and redaction-preview state are cleared after send.
 
+The answer field opens with an editable scaffold of labelled lines: **Approach**, **Monitoring**, **Escalation**, and optional **Additional context**. Suggestion chips from the governed approach, monitoring (multi-select), and escalation (single choice) vocabularies write into the matching line while preserving typed text. Required headings left in the draft must be filled or deleted before the check; blank optional headings are removed in the visible draft before scanning, so the reviewed preview matches what is stored. Labelled answers render as sections for both physicians. The scaffold is presentation only; storage remains one reviewed free-text value.
+
 This is not open chat: there is one answer per accepted request, no reply thread, attachments, patient narrative field, exact dose field, or unreviewed passthrough. Previous enum-built answers remain readable for existing browser data.
 
 ## 9. Visible trust explanation

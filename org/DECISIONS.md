@@ -4,6 +4,22 @@ This file records durable decisions. New entries should include a date, status, 
 
 ## Accepted baseline decisions
 
+### 2026-09-27 — Email-sharing approval is one-way
+
+- **Status:** Accepted; supersedes per-consult email approval revocation
+- **Decision:** After a physician approves email sharing on a consult, the approval cannot be withdrawn. The approve button locks in the approved state on both the Inbox and Doctor Connect surfaces, and the consult store only accepts approval (`approveContact`), never a change back to unapproved. The reciprocal email is still revealed only when both physicians have approved and the contact policy allows it.
+- **Reason:** Once an email address has been shown to a colleague it cannot be meaningfully un-shared, so a toggle that hid it again implied a control that did not exist.
+- **Boundary:** Production contact retrieval must still re-check account eligibility and broader consent at request time. This does not change matching consent or identity rules.
+- **Affected:** Consult context API, Inbox and Doctor Connect contact controls, Doctor Connect plan, maintained context.
+
+### 2026-09-27 — Responder answer opens with an editable structured scaffold
+
+- **Status:** Accepted; refines the guarded-text responder lifecycle
+- **Decision:** The single capped responder answer is pre-filled with labelled `Approach`, `Monitoring`, `Escalation`, and optional `Additional context` lines. Suggestion chips drawn from the existing governed vocabularies write into those lines, and the physician can edit, delete, or replace any of it. Required headings that are still present must be filled or removed before review; blank optional headings are removed visibly before the scan. Answers that use the labels are displayed as sections to both physicians.
+- **Reason:** Peer answers are easier to write consistently and faster to scan when they follow a common clinical shape, without losing the expressiveness of free text.
+- **Boundary:** The scaffold is presentation only. Storage is still one reviewed free-text value with the same guardrail, preview, confirmation, and disposal lifecycle; no separate dose, patient-narrative, or attachment field is introduced.
+- **Affected:** Inbox response builder, requester response view, Doctor Connect answer helpers and tests.
+
 ### 2026-09-27 — Responder uses the same explicit guarded-text lifecycle
 
 - **Status:** Accepted; supersedes structured-only responder input
@@ -70,7 +86,7 @@ This file records durable decisions. New entries should include a date, status, 
 ### 2026-09-26 — Mutual email reveal and per-account unread state
 
 - **Status:** Accepted
-- **Decision:** Resolve each physician's actual email from the account directory only after the contact policy confirms both approvals. Show the reciprocal email on both requester and responder surfaces, and hide it again if either approval is revoked. Track recipient-request and requester-answer reads separately so Inbox and Doctor Connect badges count only unread events for the active account.
+- **Decision:** Resolve each physician's actual email from the account directory only after the contact policy confirms both approvals. Show the reciprocal email on both requester and responder surfaces, and hide it again if either approval is revoked. *(Per-consult email approval revocation superseded 2026-09-27: approval is one-way.)* Track recipient-request and requester-answer reads separately so Inbox and Doctor Connect badges count only unread events for the active account.
 - **Reason:** Contact disclosure must be reciprocal, consent-gated, and tied to real account identity, while notification badges must represent outstanding attention rather than permanent workflow history.
 - **Affected:** Doctor Connect, Inbox, account directory, consult state, navigation badges, policy enforcement, tests, and product documentation.
 

@@ -1,10 +1,12 @@
 import { Activity, BellRing, Home, Inbox, LogOut, Network } from "lucide-react";
-import { NavLink, Outlet } from "react-router-dom";
+import { useEffect } from "react";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { POLICY_VERSION } from "@relay/relay-core";
 import { useDemo } from "../demo-context";
 import { useAccountAuth } from "../auth-context";
 import { useConsults } from "../consult-context";
 import { getConsultBadgeCounts } from "../consult-state";
+import relayMark from "../assets/relay-mark.png";
 
 const physicianNavigation = [
   { to: "/", label: "Overview", icon: Home },
@@ -15,6 +17,11 @@ const physicianNavigation = [
 ];
 
 export function AppShell() {
+  const { pathname } = useLocation();
+  // Every page opens at the top, regardless of where the previous page was scrolled.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [pathname]);
   const { persona } = useDemo();
   const auth = useAccountAuth();
   const { requests } = useConsults();
@@ -26,8 +33,8 @@ export function AppShell() {
       <header className="site-header">
         <div className="topbar">
           <NavLink className="brand" to="/" aria-label="Relay overview">
-            <span className="brand-mark" aria-hidden="true"><span /></span>
-            <span><strong>Relay</strong><small>for Impiricus</small></span>
+            <span className="brand-stack"><img className="brand-logo" src={relayMark} alt="" width={38} height={38} /><small>Impiricus</small></span>
+            <strong>Relay</strong>
           </NavLink>
 
           <nav className="nav-list" aria-label="Main navigation">

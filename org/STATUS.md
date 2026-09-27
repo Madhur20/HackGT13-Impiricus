@@ -7,7 +7,7 @@ Last updated: 2026-09-27.
 - **Stage:** Functional browser-first hackathon prototype.
 - **Repository contents:** Product/system plans, maintained context, contribution guidance, module boundaries, and a TypeScript workspace.
 - **Application code:** React/Vite web shell with a DocUpdate-compatible local sign-in/sign-up screen, Home, Practice Mirror, RL-backed Doctor Connect, a recipient Inbox, physician-facing Ledger Updates, and a shared Audit view.
-- **Tests:** 43 deterministic tests across local credential validation, consult unread state, guarded free-text question/answer handling and age generalization, legacy structured-answer compatibility, cohort comparison, matching, policy, account-aware data-broker reads, update filtering/personalization and specialist eligibility, semantic-diff, peer domain clustering/discovery, and Network Graph expertise/trust matching, contextual-bandit ranking, account-to-account routing, and learning behavior.
+- **Tests:** 46 deterministic tests across local credential validation, consult unread state, guarded free-text question/answer handling and age generalization, the structured answer scaffold, legacy structured-answer compatibility, cohort comparison, matching, policy, account-aware data-broker reads, update filtering/personalization and specialist eligibility, semantic-diff, peer domain clustering/discovery, and Network Graph expertise/trust matching, contextual-bandit ranking, account-to-account routing, and learning behavior.
 - **Demo readiness:** Core click paths work from synthetic seed data and the production bundle builds. Headless Chrome checks confirm the new sign-in screen, authenticated Doctor Connect, Inbox, and the five-stage UCB match funnel render without a Vite error overlay at 1440 × 1000; hands-on mobile and full two-account interaction QA remain open.
 - **Data:** Forty-four synthetic HCP directory profiles (36 baseline, six featured experts, and two additional account profiles), prescribing fixtures, per-physician prescribing vectors and account-specific Mirror data, Network Graph fixtures (expertise tags/edges, peer-help profiles, seeded trust edges), three reviewed medicine-update fixtures, consent failure cases, and a fictional versioned policy.
 - **Deployment:** Production is hosted at `https://relay-hackgt13.vercel.app` through the `madhur20s-projects/relay-hackgt13` Vercel project. No backend is configured.
@@ -19,7 +19,7 @@ Plans remain broader than the prototype. Do not infer production integrations, l
 Harden the working prototype for the hackathon demo:
 
 1. Perform hands-on responsive QA in Chrome and on a phone-sized device.
-2. Add browser-level tests for sign-in, the two-account Connect → Inbox → Connect lifecycle, consent revocation, double-consent contact reveal, Mirror → Connect, and Updates → Connect.
+2. Add browser-level tests for sign-in, the two-account Connect → Inbox → Connect lifecycle, one-way email approval, double-consent contact reveal, Mirror → Connect, and Updates → Connect.
 3. Add a deterministic reset for browser-local account, consult, page, and audit state.
 4. After the input-pipeline work, evaluate the deferred Supabase Auth + Postgres + Realtime option for cross-device accounts, consult persistence, and notifications; it is a candidate, not yet an accepted architecture decision.
 5. Prepare deployment and a concise scripted demo run.
@@ -45,6 +45,24 @@ The next demo-hardening milestone is complete when:
 - the team has made and recorded the local-only versus hosted-demo decision.
 
 ## Iteration log
+
+### 2026-09-27 — One-way email approval and scroll reset on navigation
+
+- **Changed:** Email-sharing approval is now final: the consult context exposes `approveContact` instead of a boolean toggle, and the Inbox and Doctor Connect buttons lock as "Email approved"/"Approved" with copy stating approval cannot be withdrawn. Separately, the app shell scrolls the window to the top whenever the route changes, so each page opens at its top.
+- **Verified:** TypeScript validation passes. Headless Chrome: navigating from a scrolled page to Practice Mirror, Inbox, Doctor Connect, and Updates lands at `scrollY` 0 each time; after approving email in the Inbox the button is disabled and a forced second click leaves the stored approval `true`.
+- **Open:** Browser automation for these checks is not yet in the test suite.
+
+### 2026-09-27 — Structured scaffold for the physician answer
+
+- **Changed:** The Inbox answer field now opens pre-filled with labelled lines (`Approach`, `Monitoring`, `Escalation`, optional `Additional context`). A response-structure panel offers suggestion chips from the existing approach, monitoring (multi-select), and escalation (choose one) vocabularies that write into the matching line without discarding typed text; section status pills and a reset action sit with the field. Before the privacy check, blank optional headings are removed in the visible draft so the reviewed text is exactly what is sent. The reviewed preview, the responder's sent view, and the requester's response card render labelled sections, and legacy enum answers use the same layout. Also fixed a closed-`BroadcastChannel` crash that blanked Doctor Connect when an answered request was opened under React StrictMode.
+- **Verified:** `npm run check` passes TypeScript validation, 46 tests, and the production build. New tests cover template parsing, chip toggling, preservation of typed text, canonical-order restoration, tidy-before-review, and that every suggestion phrase passes the answer guardrail. Headless Chrome drove Maya's Inbox → compose → check → confirm → send at 1440 px and 420 px, and rendered Elena's structured response card at both widths.
+- **Open:** It remains one capped free-text answer; the scaffold is not separately stored or validated. Browser automation for the flow is not yet part of the test suite.
+
+### 2026-09-27 — Notification badges decrement only when an item is opened
+
+- **Changed:** Inbox no longer auto-opens the first request, so a request is marked read only when the physician clicks it; unread requests show a dot and heavier name. Doctor Connect gained a **Your questions** list of every request the physician sent, newest first, with a dot on unread answers; opening one restores it and marks the answer read. Previously visiting Inbox silently read one request, and answers to any request other than the single active one could never be opened, leaving the Doctor Connect badge stuck.
+- **Verified:** Browser run with two unread requests and two unread answers: Inbox 2 → visit 2 → open first 1 → reopen first 1 → open second 0; Doctor Connect 2 → visit 2 → open first 1 → open second 0; counts persist across reload. `npm run check` passes.
+- **Open:** Browser automation for this flow is not yet in the test suite.
 
 ### 2026-09-27 — Guarded free-text physician answer flow
 

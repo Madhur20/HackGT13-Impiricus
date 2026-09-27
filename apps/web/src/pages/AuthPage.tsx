@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { ArrowRight, BadgeCheck, LockKeyhole, ShieldCheck } from "lucide-react";
 import { useAccountAuth } from "../auth-context";
+import relayMark from "../assets/relay-mark.png";
 
 type AuthMode = "signin" | "signup";
 
@@ -43,7 +44,7 @@ export function AuthPage() {
 
   return <div className="auth-page">
     <header className="auth-header">
-      <div className="auth-brand"><span className="brand-mark" aria-hidden="true"><span /></span><span><strong>Relay</strong><small>for Impiricus</small></span></div>
+      <div className="auth-brand"><span className="brand-stack"><img className="brand-logo" src={relayMark} alt="" width={42} height={42} /><small>Impiricus</small></span><strong>Relay</strong></div>
       <button className="button secondary auth-mode-button" onClick={() => changeMode(mode === "signin" ? "signup" : "signin")}>{mode === "signin" ? "Sign Up" : "Sign In"}</button>
     </header>
 
