@@ -1,15 +1,59 @@
 import type { AllowedField, HcpProfile, Persona, PracticeUpdate, PrescribingStat } from "@relay/domain";
 
 export const personas: Persona[] = [
-  { id: "hcp-maya", name: "Dr. Maya Chen", role: "hcp", subtitle: "Endocrinology · Atlanta, GA", initials: "MC" },
-  { id: "hcp-jordan", name: "Dr. Jordan Brooks", role: "hcp", subtitle: "Internal Medicine · Decatur, GA", initials: "JB" },
+  { id: "hcp-maya", name: "Dr. Maya Chen", role: "hcp", subtitle: "Endocrinology · Atlanta, GA", initials: "MC", specialty: "Endocrinology", location: "Atlanta, GA", credentialStatus: "verified", npi: "1234567890" },
+  { id: "hcp-jordan", name: "Dr. Jordan Brooks", role: "hcp", subtitle: "Internal Medicine · Decatur, GA", initials: "JB", specialty: "Internal Medicine", location: "Decatur, GA", credentialStatus: "verified", npi: "1357924680" },
+  { id: "hcp-1", name: "Dr. Elena Ruiz", role: "hcp", subtitle: "Endocrinology · Savannah, GA", initials: "ER", specialty: "Endocrinology", location: "Savannah, GA", credentialStatus: "verified", npi: "1098765432" },
 ];
 
 const specialties = ["Endocrinology", "Internal Medicine", "Family Medicine"];
 const states = ["GA", "GA", "GA", "NC", "FL"];
 const areas = ["GLP-1 therapies", "SGLT2 inhibitors", "Diabetes management"];
 
-export const hcpProfiles: HcpProfile[] = Array.from({ length: 36 }, (_, index) => ({
+const accountProfiles: HcpProfile[] = [
+  {
+    id: "hcp-maya",
+    displayName: "Dr. Maya Chen",
+    specialty: "Endocrinology",
+    state: "GA",
+    therapeuticAreas: ["GLP-1 therapies", "SGLT2 inhibitors", "Diabetes management"],
+    topics: ["Initiation", "Monitoring", "Switching", "Tolerability"],
+    conditionTags: ["Renal impairment", "Cardiovascular disease", "Diabetes"],
+    availability: "available",
+    verified: true,
+    matchingConsent: true,
+    contactConsent: true,
+    responseReliability: 0.98,
+    timezoneFit: 1,
+    provenance: [
+      { label: "Public registry", source: "NPPES" },
+      { label: "Physician provided", source: "HCP_DECLARED" },
+      { label: "Permitted for matching", source: "IMPIRICUS_INTERACTION" },
+    ],
+  },
+  {
+    id: "hcp-jordan",
+    displayName: "Dr. Jordan Brooks",
+    specialty: "Internal Medicine",
+    state: "GA",
+    therapeuticAreas: ["GLP-1 therapies", "SGLT2 inhibitors", "Diabetes management"],
+    topics: ["Monitoring", "Switching", "Tolerability"],
+    conditionTags: ["Cardiovascular disease", "Diabetes"],
+    availability: "available",
+    verified: true,
+    matchingConsent: true,
+    contactConsent: true,
+    responseReliability: 0.94,
+    timezoneFit: 1,
+    provenance: [
+      { label: "Public registry", source: "NPPES" },
+      { label: "Physician provided", source: "HCP_DECLARED" },
+      { label: "Permitted for matching", source: "IMPIRICUS_INTERACTION" },
+    ],
+  },
+];
+
+export const hcpProfiles: HcpProfile[] = [...accountProfiles, ...Array.from({ length: 36 }, (_, index): HcpProfile => ({
   id: `hcp-${index + 1}`,
   displayName: ["Dr. Elena Ruiz", "Dr. Marcus Lee", "Dr. Priya Shah", "Dr. Noah Williams"][index % 4] + (index > 3 ? ` ${index + 1}` : ""),
   specialty: specialties[index % specialties.length],
@@ -28,7 +72,7 @@ export const hcpProfiles: HcpProfile[] = Array.from({ length: 36 }, (_, index) =
     { label: "Physician provided", source: "HCP_DECLARED" },
     { label: "Permitted for matching", source: "IMPIRICUS_INTERACTION" },
   ],
-}));
+}))];
 
 const shares = [18, 21, 22, 24, 25, 19, 28, 26, 23, 27, 30, 20, 24, 29, 17, 25, 26, 22];
 export const prescribingStats: PrescribingStat[] = shares.map((share, index) => ({
@@ -58,6 +102,12 @@ export const mirrorClassesByPersona: Record<string, typeof mirrorClasses> = {
     { id: "dpp4", label: "DPP-4 inhibitors", subject: 17, median: 14, q1: 9, q3: 19 },
     { id: "basal", label: "Basal insulin", subject: 28, median: 22, q1: 18, q3: 28 },
   ],
+  "hcp-1": [
+    { id: "sglt2", label: "SGLT2 inhibitors", subject: 23, median: 24, q1: 19, q3: 29 },
+    { id: "glp1", label: "GLP-1 receptor agonists", subject: 34, median: 29, q1: 24, q3: 35 },
+    { id: "dpp4", label: "DPP-4 inhibitors", subject: 10, median: 14, q1: 9, q3: 18 },
+    { id: "basal", label: "Basal insulin", subject: 19, median: 21, q1: 17, q3: 27 },
+  ],
 };
 
 export const practiceUpdates: PracticeUpdate[] = [
@@ -70,7 +120,7 @@ export const practiceUpdates: PracticeUpdate[] = [
     previousVersion: "Aurelia Glycera · v2: contained component X",
     currentVersion: "Aurelia Glycera · v3: contains component Y",
     changeSummary: "Aurelia Pharma replaced component X with component Y in the newer product version.",
-    detail: "This synthetic, reviewed change record is a prompt for professional discussion. Relay does not decide whether a prescription should change or provide patient-specific treatment advice.",
+    detail: "This reviewed illustrative record is a prompt for professional discussion. Relay does not decide whether a prescription should change or provide patient-specific treatment advice.",
     relevanceReasons: ["Matches your specialty", "You explored SGLT2 inhibitors in Practice Mirror"],
     audienceSpecialties: ["Endocrinology", "Internal Medicine", "Family Medicine"],
     suggestedTopics: ["Switching", "Monitoring"],
@@ -102,7 +152,7 @@ export const practiceUpdates: PracticeUpdate[] = [
     previousVersion: "Vertex Glycera · v3: contained component M",
     currentVersion: "Vertex Glycera · v4: contains component N",
     changeSummary: "Vertex Bio changed the product excipient from component M to component N in the reviewed version.",
-    detail: "This fictional update demonstrates a transparent before-and-after record for discussion with peers. It is not a clinical alert or prescribing instruction.",
+    detail: "This illustrative update demonstrates a transparent before-and-after record for discussion with peers. It is not a clinical alert or prescribing instruction.",
     relevanceReasons: ["Matches your specialty", "Part of your followed therapeutic area"],
     audienceSpecialties: ["Endocrinology", "Internal Medicine", "Family Medicine"],
     suggestedTopics: ["Monitoring", "Switching"],

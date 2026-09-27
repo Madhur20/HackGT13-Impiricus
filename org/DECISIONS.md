@@ -4,6 +4,41 @@ This file records durable decisions. New entries should include a date, status, 
 
 ## Accepted baseline decisions
 
+### 2026-09-26 — Mutual email reveal and per-account unread state
+
+- **Status:** Accepted
+- **Decision:** Resolve each physician's actual email from the account directory only after the contact policy confirms both approvals. Show the reciprocal email on both requester and responder surfaces, and hide it again if either approval is revoked. Track recipient-request and requester-answer reads separately so Inbox and Doctor Connect badges count only unread events for the active account.
+- **Reason:** Contact disclosure must be reciprocal, consent-gated, and tied to real account identity, while notification badges must represent outstanding attention rather than permanent workflow history.
+- **Affected:** Doctor Connect, Inbox, account directory, consult state, navigation badges, policy enforcement, tests, and product documentation.
+
+### 2026-09-26 — Authenticated two-sided Doctor Connect with local realtime preview
+
+- **Status:** Superseded by the required account-bound identity decision below
+- **Decision:** Provide separate requester and recipient Inbox surfaces. Use the official Auth0 React SDK for identity when configured, with a namespaced Relay HCP-ID claim. Use `BroadcastChannel` and `localStorage` only for same-browser product preview; require an authenticated API, durable persistence, server-side authorization, and realtime datastore for multi-device deployment.
+- **Reason:** The product needs to show real send, accept, answer, and dual-consent behavior now without falsely treating Auth0 as a messaging backend or client-side storage as production security.
+- **Affected:** Doctor Connect, Inbox, authentication, request state, deployment, documentation, and security backlog.
+
+### 2026-09-26 — Product presentation with explicit illustrative provenance
+
+- **Status:** Accepted
+- **Decision:** Remove “Demo” and “Synthetic data only” from product chrome. Present Relay as an embedded physician product while labeling fictional medical and product records as **Illustrative record** at the relevant data surface.
+- **Reason:** Product framing should feel native to the current Impiricus experience, while clinical/product facts must not be mistaken for verified real-world records.
+- **Affected:** Home, Mirror, Updates, audit copy, repository guidance, and presentation QA.
+
+### 2026-09-26 — Required account-bound physician identity
+
+- **Status:** Superseded by the local account entry decision below
+- **Decision:** Require Auth0 before exposing Relay. Bind the active physician exclusively to the namespaced HCP claim, remove the local persona selector and inbox query impersonation, and preserve each requester's active consult across authenticated account changes. Maya and Elena are first-class directory profiles that can send requests to one another.
+- **Reason:** A request must be received, accepted, and answered by the intended physician account rather than by anyone who can change a client-side profile control.
+- **Affected:** Authentication gate, header, HCP fixtures, Connect matching, Inbox filtering, request snapshots, notification recovery, tests, and setup documentation.
+
+### 2026-09-26 — Local account entry for the hackathon build
+
+- **Status:** Accepted
+- **Decision:** Remove Auth0 and provide a DocUpdate-inspired sign-in/sign-up experience backed by browser-local accounts. Passwords are stored as SHA-256 hashes, sessions remain account-bound, and changing physicians requires sign-out/sign-in. Sign-up may activate only an existing eligible profile matched by NPI; it does not establish credential verification. Production must replace this mechanism with server-side authentication and protected sessions.
+- **Reason:** The hackathon presentation needs a complete, immediately usable account flow without external tenant configuration while preserving separate physician identities.
+- **Affected:** Authentication, account entry UI, HCP profile fixtures, dependencies, local persistence, setup documentation, security boundary, and Doctor Connect account switching.
+
 ### 2026-09-26 — Browser-first TypeScript prototype stack
 
 - **Status:** Accepted
@@ -48,7 +83,7 @@ This file records durable decisions. New entries should include a date, status, 
 
 ### 2026-09-26 — Persona switching changes physician data
 
-- **Status:** Accepted
+- **Status:** Superseded by the required account-bound physician identity decision
 - **Decision:** Each synthetic HCP persona receives distinct Practice Mirror values, default Doctor Connect context, and Updates ordering/relevance copy. Updates keeps one compact selector and a focused right-side detail panel with previous/next navigation, and specialist counts are derived from eligible returned profiles.
 - **Reason:** A persona switch must demonstrate a real change in physician context, and the focused Updates layout reduces repetition while keeping the reviewed comparison visible.
 - **Affected:** Demo seed, data broker, Practice Mirror, Doctor Connect, Updates, tests, and presentation guidance.

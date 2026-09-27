@@ -18,9 +18,10 @@ export function readMirrorDataset(): BrokerResult<PrescribingStat[]> {
   };
 }
 
-export function readConnectCandidates(): BrokerResult<HcpProfile[]> {
+export function readConnectCandidates(input?: { actorId?: string }): BrokerResult<HcpProfile[]> {
   return {
     data: hcpProfiles
+      .filter((candidate) => candidate.id !== input?.actorId)
       .filter((candidate) => authorizeUse({ purpose: "PEER_MATCHING", candidate }).decision === "allow")
       .map((candidate) => ({ ...candidate, provenance: [...candidate.provenance] })),
     purpose: "PEER_MATCHING",

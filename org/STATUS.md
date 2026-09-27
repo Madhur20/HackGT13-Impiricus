@@ -6,11 +6,11 @@ Last updated: 2026-09-26.
 
 - **Stage:** Functional browser-first hackathon prototype.
 - **Repository contents:** Product/system plans, maintained context, contribution guidance, module boundaries, and a TypeScript workspace.
-- **Application code:** React/Vite web shell with Home, Practice Mirror, Doctor Connect, physician-facing Ledger Updates, and a shared Audit view.
-- **Tests:** Eleven deterministic tests across cohort comparison, matching, policy, data-broker, update filtering/personalization, specialist eligibility, and legacy schema-diff behavior.
-- **Demo readiness:** Core click paths work from synthetic seed data and the production bundle builds. The shared shell and Updates page pass headless Chrome desktop review; narrow-width capture informed mobile overflow defenses, while hands-on mobile interaction QA remains open.
-- **Data:** Thirty-six synthetic HCP profiles, prescribing fixtures, three reviewed medicine-update fixtures, consent failure cases, and a fictional versioned policy. Unused legacy client-scope fixtures remain technical cleanup.
-- **Deployment:** Local Vite build only; no hosted deployment or backend is configured.
+- **Application code:** React/Vite web shell with a DocUpdate-inspired local sign-in/sign-up experience, Home, Practice Mirror, requester and recipient sides of Doctor Connect, physician-facing Ledger Updates, and a shared Audit view.
+- **Tests:** Fifteen deterministic tests across local credential validation, account-aware matching, consult unread counts, cohort comparison, policy, data-broker, update filtering/personalization, specialist eligibility, and legacy schema-diff behavior.
+- **Product readiness:** Core click paths work from illustrative local records and the production bundle builds. Physician identity is account-bound through local sign-in, and same-browser account changes preserve Doctor Connect send, accept, answer, contact-approval, and final-response state. Hands-on full-flow and mobile interaction QA remains open.
+- **Data:** Thirty-eight synthetic HCP directory profiles, including first-class Maya and Elena accounts, prescribing fixtures, three reviewed medicine-update fixtures, consent failure cases, and a fictional versioned policy. Unused legacy client-scope fixtures remain technical cleanup.
+- **Deployment:** Local Vite build only. No external identity configuration is required. Production authentication, durable request storage, and multi-device realtime transport are not configured.
 
 Plans remain broader than the prototype. Do not infer production integrations, legal approval, real credentialing, or durable storage from the working UI.
 
@@ -20,8 +20,8 @@ Harden the working prototype for the hackathon demo:
 
 1. Perform hands-on responsive QA in Chrome and on a phone-sized device.
 2. Add browser-level tests for the Mirror → Connect handoff, consent revocation, double-consent contact reveal, and Updates → Connect handoff.
-3. Add a deterministic demo reset for page-local state, not only persona and audit state.
-4. Decide whether the hackathon needs a minimal API/persistence layer or should remain an intentionally local prototype.
+3. Add an authenticated browser test for Elena → Maya → Elena request completion.
+4. Add the authenticated API/persistence and realtime service required for multi-device Doctor Connect, or keep the current same-browser preview boundary explicit.
 5. Prepare deployment and a concise scripted demo run.
 
 ## Required early fixtures
@@ -45,6 +45,34 @@ The next demo-hardening milestone is complete when:
 - the team has made and recorded the local-only versus hosted-demo decision.
 
 ## Iteration log
+
+### 2026-09-26 — Reciprocal contact reveal and read-aware badges
+
+- **Changed:** Connected mutual contact approval to the physicians' actual account emails on both requester and recipient screens, kept email addresses out of consult request snapshots, added separate recipient/requester read timestamps, and changed Inbox and Doctor Connect badges to count only unread requests and unread answers for the active account.
+- **Verified:** `npm run check` passes TypeScript validation, fifteen tests, and the production build.
+- **Open:** Browser-level coverage for double-consent reveal, consent revocation, and multi-tab badge transitions remains open.
+- **Next:** Add an authenticated browser test covering Elena → Maya → Elena, reciprocal email reveal, and badge clearing.
+
+### 2026-09-26 — DocUpdate-style local sign-in and sign-up
+
+- **Changed:** Removed Auth0 and its environment configuration, added a responsive DocUpdate-inspired account entry screen, seeded separate Elena, Maya, and Jordan credentials, added NPI-matched sign-up, stored local passwords as SHA-256 hashes, and kept all product/inbox data bound to the signed-in account.
+- **Verified:** `npm run check` passes TypeScript validation, fourteen tests, and the production build. Credential tests accept Maya's correct password, reject an incorrect password, and confirm Maya and Elena map to different HCP IDs. The sign-in screen was reviewed in headless Chrome at 1440 × 1000 and matches the supplied pale-cyan, dotted, split-layout reference direction.
+- **Open:** Browser automation for form submission and the full Elena → Maya → Elena lifecycle remains open. The local credential store is not production authentication and must be replaced before deployment.
+- **Next:** Add browser-level coverage for sign-in, sign-up validation, account isolation, and the two-physician Doctor Connect flow.
+
+### 2026-09-26 — Account-bound HCP workflow and answer notification
+
+- **Changed:** Removed unauthenticated physician switching and URL inbox impersonation, required a valid Auth0 HCP claim for all product access, made Maya and Elena eligible directory accounts, added structured requester/recipient identity snapshots, filtered Inbox strictly by the signed-in account, persisted each requester's active consult, and added Inbox/answered navigation badges plus automatic restoration to the final answer step.
+- **Verified:** `npm run check` passes TypeScript validation, twelve tests, and the production build. The broker test confirms Elena can see Maya but not herself and Maya can see Elena but not herself.
+- **Open:** The team must configure the Auth0 tenant and two user accounts before hands-on authentication QA. Cross-browser or cross-device delivery still requires a protected shared backend rather than browser-local state.
+- **Next:** Configure Elena (`hcp-1`) and Maya (`hcp-maya`) in Auth0, run the full account-switch flow, then add browser automation for it.
+
+### 2026-09-26 — Two-sided Doctor Connect and Auth0 boundary
+
+- **Changed:** Removed demo framing from the physician UI, added a recipient Inbox with accept/decline, structured answering, and independent contact approval, synchronized consult state between same-browser tabs, and integrated the official Auth0 React provider behind environment configuration. Fictional medical/product facts now use the quieter **Illustrative record** provenance label.
+- **Verified:** `npm run check` passes TypeScript validation, eleven tests, and the production build.
+- **Open:** Auth0 tenant credentials and HCP claims must be configured by the team. Multi-device delivery still requires a protected API, durable database, server-side policy enforcement, and realtime infrastructure; browser interaction automation and hands-on responsive QA remain open.
+- **Next:** Configure the Auth0 SPA and two physician accounts, then implement or select the hosted request/realtime backend if the presentation must span separate devices.
 
 ### 2026-09-26 — Readability, focused Updates, and persona data
 

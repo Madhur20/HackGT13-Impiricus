@@ -32,6 +32,7 @@ The pitch predates a safety and architecture review. Never restore a pitch claim
 - Relay is one consent, policy, provenance, explanation, and audit foundation supporting three different product computations. Do not implement one fake universal delta/similarity algorithm.
 - Practice Mirror is descriptive. It must not infer guideline adherence, care quality, diagnosis, indication, treatment appropriateness, or patient eligibility from Part D data.
 - Doctor Connect uses governed categorical questions and structured responses in the hackathon build. It has no open chat, attachments, patient narratives, or exact dose-entry fields.
+- Physician identity comes only from the active account session. Do not add a profile switcher or query-parameter impersonation; account changes must go through sign-out and sign-in.
 - Peer identity requires active matching consent. Contact information requires active consent from both physicians and a fresh authorization check when retrieved.
 - Ledger gives physicians reviewed before/after drug-product changes and routes governed specialist discussions. It does not recommend treatment, change prescriptions, interpret contracts, or let an LLM make clinical decisions.
 - Web UI changes should preserve the accepted DocUpdate-compatible editorial language: floating white navigation, pale blue canvas, serif display headings, restrained navy/violet/teal color, generous space, and minimal dashboard chrome.
@@ -40,7 +41,7 @@ The pitch predates a safety and architecture review. Never restore a pitch claim
 - Every product data read goes through the shared data broker and deterministic policy service.
 - Every derived result exposes provenance, policy version, and structured explanation inputs. Every policy decision produces an append-only audit event.
 - Gemini may phrase approved structured facts. It may not make access, compliance, clinical, or final ranking decisions, and every use needs a deterministic fallback.
-- Demo data and jurisdiction rules are synthetic and must be labeled as such.
+- Fictional medical/product records and jurisdiction rules must retain clear provenance. Product chrome should use the neutral label **Illustrative record** rather than presenting Relay as a demo.
 
 ## Working conventions
 

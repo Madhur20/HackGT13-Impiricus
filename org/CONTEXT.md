@@ -27,7 +27,7 @@ The hackathon prototype must prove direct HCP value, visible consent effects, ev
 
 | Priority | Area | Required proof |
 |---|---|---|
-| P0 | Shared foundation | Persona/role switching, purpose and consent evaluation, provenance labels, data broker, and audit events |
+| P0 | Shared foundation | Authenticated HCP identity, purpose and consent evaluation, provenance labels, data broker, and audit events |
 | P0 | Doctor Connect | Structured question, hard eligibility filters, transparent ranking, request/response flow, and mutual contact consent |
 | P1 | Practice Mirror | One defensible cohort comparison with visible limits and no quality claim |
 | P1 | Ledger | One reviewed before/after drug-product update with relevance reasons, four specialist options, and a governed Connect handoff |
@@ -54,7 +54,7 @@ Every usable field identifies its path, source, classification, granularity, col
 - Classifications: `public`, `declared`, `derived`, `restricted`.
 - Granularity: `individual`, `cohort`, `aggregate`.
 
-Use accurate UI labels such as **Public registry**, **Physician provided**, **Permitted for matching**, **Aggregate benchmark**, and **Synthetic demo data**. Do not merge anonymity and opt-in into one badge.
+Use accurate UI labels such as **Public registry**, **Physician provided**, **Permitted for matching**, **Aggregate benchmark**, and **Illustrative record**. Do not merge anonymity and opt-in into one badge. Fictional clinical or product facts retain provenance without labeling the whole application as a demo.
 
 ### Consent grant
 
@@ -73,7 +73,9 @@ Ledger stores an immutable reviewed change record with the company, product, pri
 
 ## Shared system design
 
-Use one responsive web application with physician navigation for Mirror, Connect, and Updates, plus a shared Audit view. Use a seeded persona switcher instead of production authentication. Switching physicians must change the synthetic Mirror values, default Connect context, and Updates ordering/relevance so the demo never presents one shared dataset as two people.
+Use one responsive web application with physician navigation for Mirror, Connect, a recipient Inbox, Updates, and a shared Audit view. The hackathon build uses browser-local accounts with hashed passwords and an account session as the sole source of active physician identity. There is no profile selector or URL-based inbox impersonation. Different signed-in physicians receive distinct Mirror values, Connect requests, Inbox items, and Updates relevance. Production requires a server-side identity provider and protected sessions.
+
+Doctor Connect requests have two explicit surfaces: the requester creates and monitors a structured request in Connect, while the selected physician receives it only after signing into their own account, accepts or declines it, submits a structured response, and independently controls contact sharing. Request snapshots preserve both physicians' names, specialties, locations/states, and credential status alongside the governed question fields, but do not copy hidden email addresses into the request. After both physicians approve email disclosure, each side sees the other physician's actual account email; either revocation hides it again. Inbox and Doctor Connect badges count unread recipient requests and unread requester answers respectively, and clear as the signed-in physician reads the relevant item. The requester's Connect view restores the active request directly to the final answer step. The current browser build synchronizes this lifecycle in one browser with `BroadcastChannel` and `localStorage`; deployed multi-device use requires an authenticated API, durable database, server-side authorization, and realtime delivery.
 
 The hackathon should be a modular monolith with conceptual modules for profiles, policy, Mirror, Connect, Ledger, explanations, and audit. The shared, importable core exposes behavior equivalent to:
 

@@ -13,11 +13,8 @@ type RecordInput = {
 
 type DemoContextValue = {
   persona: Persona;
-  personas: Persona[];
-  setPersonaId: (id: string) => void;
   events: AuditEvent[];
   record: (input: RecordInput) => void;
-  resetDemo: () => void;
 };
 
 const DemoContext = createContext<DemoContextValue | null>(null);
@@ -26,38 +23,23 @@ const initialEvents: AuditEvent[] = [
   recordAuditEvent({
     actorId: "system",
     product: "System",
-    action: "DEMO_SEED_READY",
+    action: "WORKSPACE_READY",
     purpose: "AGGREGATE_ANALYTICS",
     decision: "allow",
-    summary: "Synthetic profiles, policy fixtures, and offline explanations loaded.",
+    summary: "Policy, profile, and offline explanation resources loaded.",
   }),
 ];
 
-export function DemoProvider({ children }: { children: ReactNode }) {
-  const [personaId, setPersonaId] = useState(personas[0].id);
+export function DemoProvider({ actorId, children }: { actorId: string; children: ReactNode }) {
   const [events, setEvents] = useState(initialEvents);
-  const persona = personas.find((item) => item.id === personaId) ?? personas[0];
+  const persona = personas.find((item) => item.id === actorId);
+  if (!persona) throw new Error(`Authenticated physician profile ${actorId} is not configured`);
 
   const value = useMemo<DemoContextValue>(() => ({
     persona,
-    personas,
-    setPersonaId,
     events,
     record: (input) => {
       setEvents((current) => [recordAuditEvent({ ...input, actorId: persona.id }), ...current]);
-    },
-    resetDemo: () => {
-      setPersonaId(personas[0].id);
-      setEvents([
-        recordAuditEvent({
-          actorId: "system",
-          product: "System",
-          action: "DEMO_RESET",
-          purpose: "AGGREGATE_ANALYTICS",
-          decision: "allow",
-          summary: "Relay returned to the deterministic starting state.",
-        }),
-      ]);
     },
   }), [events, persona]);
 
