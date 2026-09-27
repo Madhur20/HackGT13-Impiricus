@@ -32,7 +32,7 @@ Do not treat `docs/Claude interactions/` as authority. The current user instruct
 ## Preserve product boundaries
 
 - Practice Mirror is descriptive and cannot claim adherence, quality, indication, or treatment appropriateness.
-- Doctor Connect uses governed categorical questions and structured responses. Hard eligibility filters precede ranking, and contact disclosure requires fresh mutual-consent checks.
+- Doctor Connect uses four scoped requester free-text fields and one capped responder free-text field with explicit privacy/safety review, exact preview, confirmation, and temporary-draft disposal; requester ages are generalized to disclosed coarse ranges. Hard eligibility filters precede ranking, and contact disclosure requires fresh mutual-consent checks.
 - Treat the browser-local account session as the hackathon identity boundary, not production authentication or realtime transport. Deployed flows require server-side authentication, protected sessions, durable state, and realtime delivery.
 - Keep the active physician bound to the signed-in account. Do not reintroduce a persona selector, URL-based inbox impersonation, or another unauthenticated account switch.
 - Ledger gives physicians reviewed before/after drug-product changes and routes governed specialist discussions. It does not recommend treatment, interpret contracts, or produce clinical or legal approval.

@@ -7,7 +7,7 @@ Last consolidated from the project plans: 2026-09-26.
 Relay is a consent-aware decision layer for Impiricus. It supports three experiences:
 
 - **Practice Mirror** gives a physician a private, descriptive comparison of their public Medicare Part D prescribing mix with a clearly defined peer cohort.
-- **Doctor Connect** lets a physician assemble a general clinical-practice question from governed categories and route it to an eligible, opted-in peer.
+- **Doctor Connect** lets a physician compose a general clinical-practice question in four guarded fields, review exactly what will be sent, and route it to an eligible, opted-in peer.
 - **Ledger** gives physicians a reviewed, versioned view of recent pharma and drug-product changes: what changed between versions, why the update is relevant, and four eligible specialists they can ask about the practical implications. It does not provide prescribing instructions or patient-specific treatment advice.
 
 The products share a policy pipeline, not one mathematical algorithm:
@@ -75,7 +75,7 @@ Ledger stores an immutable reviewed change record with the company, product, pri
 
 Use one responsive web application with physician navigation for Mirror, Connect, a recipient Inbox, Updates, and a shared Audit view. The hackathon build uses browser-local accounts with hashed passwords and an account session as the sole source of active physician identity. There is no profile selector or URL-based inbox impersonation. Different signed-in physicians receive distinct Mirror values, Connect requests, Inbox items, and Updates relevance. Production requires a server-side identity provider and protected sessions.
 
-Doctor Connect requests have two explicit surfaces: the requester selects a peer returned by the hard-filter-first contextual-bandit matcher, then creates and monitors a structured request in Connect, while the selected physician receives it only after signing into their own account, accepts or declines it, submits a structured response, and independently controls contact sharing. Request snapshots preserve both physicians' names, specialties, locations/states, and credential status alongside the governed question fields, but do not copy hidden email addresses into the request. After both physicians approve email disclosure, each side sees the other physician's actual account email; either revocation hides it again. Inbox and Doctor Connect badges count unread recipient requests and unread requester answers respectively, and clear as the signed-in physician reads the relevant item. The requester's Connect view restores the active request directly to the final answer step. The current browser build synchronizes this lifecycle in one browser with `BroadcastChannel` and `localStorage`; deployed multi-device use requires an authenticated API, durable database, server-side authorization, and realtime delivery.
+Doctor Connect requests have two explicit surfaces. On the requester side, four character-capped free-text fields preserve the physician's wording and do not run checks or change values while the physician types. An explicit review action scans each field independently for common name/person phrasing, exact ages and dates, contact details, record/government identifiers, addresses/precise locations, online identifiers, and safety-stop phrases. Flagged text stays visible, receives an explanatory redacted preview, and must be revised; it is never silently rewritten or stored. A valid exact age in the age field is the one disclosed transformation: review maps it to a coarse population band, shows both original and reviewed values, and stores only the band. Safe reviewed text is assembled into a question and requires the physician to confirm that it is general and non-identifying. The approved question is retained for the recipient, while temporary pre-review form state is cleared after send. Recognizable terms may derive internal matching signals without changing displayed text or bypassing the Network Graph's hard filters. The selected physician receives the request only after signing into their own account and accepts or declines it. After acceptance, the responder writes one capped general-practice answer, explicitly runs the same deterministic identifier and safety-event checks, reviews the exact output, confirms it is non-identifying professional experience, and sends it. Failed drafts never enter consult storage; only the reviewed answer is retained. Older enum-built answers remain readable for compatibility. Each physician independently controls contact sharing. Request snapshots preserve both physicians' professional identity and the reviewed question, but do not copy hidden email addresses. After both physicians approve email disclosure, each side sees the other physician's actual account email; either revocation hides it again. Inbox and Doctor Connect badges count unread recipient requests and unread requester answers respectively. The current browser build synchronizes this lifecycle in one browser with `BroadcastChannel` and `localStorage`; deployed multi-device use requires an authenticated API, durable database, server-side authorization, and realtime delivery.
 
 The hackathon should be a modular monolith with conceptual modules for profiles, policy, Mirror, Connect, Ledger, explanations, and audit. The shared, importable core exposes behavior equivalent to:
 
@@ -97,7 +97,7 @@ compareReviewedVersions(...) // normalized before/after product-version comparis
 
 All feature reads pass through a data broker that accepts actor, subject, purpose, recipient, and requested fields. It calls the policy service and returns only allowed data. Feature code must not read restricted profiles or consent collections directly.
 
-Suggested MongoDB collections are `hcp_profiles`, `field_provenance`, `consent_grants`, `question_taxonomy`, `consult_requests`, `structured_answers`, `reviewed_product_changes`, `policy_rules`, `audit_events`, and the Network Graph collections `expertise_tags`, `expertise_edges`, `peer_help_profiles`, `trust_edges`, and `connection_feedback`.
+Suggested MongoDB collections are `hcp_profiles`, `field_provenance`, `consent_grants`, `question_taxonomy`, `consult_requests`, `peer_answers`, `reviewed_product_changes`, `policy_rules`, `audit_events`, and the Network Graph collections `expertise_tags`, `expertise_edges`, `peer_help_profiles`, `trust_edges`, and `connection_feedback`.
 
 ## Deterministic policy service
 
@@ -133,7 +133,7 @@ Core endpoints:
 
 Doctor Connect frames general practice questions and returns limited professional information for up to three eligible peers.
 
-The versioned question taxonomy includes therapeutic area/class, topic, coarse population band, condition tags, and allowed/prohibited combinations. Unsupported combinations stop safely. The hackathon has no free-text question, category suggestion, attachments, patient narrative, or optional response note.
+The versioned requester contract uses four capped free-text fields with an explicit privacy/safety review, disclosed age generalization, and internal matching signals. The responder uses one capped answer field with the same explicit privacy/safety review, preview, and confirmation. Neither side has open chat, attachments, patient narrative capture, or exact dose-entry fields.
 
 Hard filters run before ranking. A candidate must be verified, available, actively consented for matching, permitted for the selected subject, conflict-free, jurisdiction/program eligible, and different from the requester. Require a minimum evidence floor and return an honest no-match state instead of weakening it.
 
@@ -152,11 +152,11 @@ Weights are assumptions and belong in configuration. Public prescribing volume c
 
 The request state machine covers draft, preview, safety check, match, send, accept/decline/expire, answer, close, contact request, partial consent, and shared/declined/expired contact. Every transition is audited. Contact data lives in a protected collection and is returned only after both physicians opt in; retrieval must re-check active consent and account eligibility.
 
-Structured responses contain approach, monitoring, escalation, and reviewed evidence-reference tags plus reuse consent. They avoid exact dose-entry fields. Reusable answers are labeled as peer experience, dated, moderated, and removable.
+New responses retain only the responder's privacy-reviewed general-practice answer plus guardrail/taxonomy version and timestamp. They avoid exact dose-entry fields. Older structured answers remain readable. Any future reusable answers are labeled as peer experience, dated, moderated, consented for reuse, and removable.
 
 One demo selection must trigger a fictional pharmacovigilance safety stop. Do not claim that it satisfies FDA obligations. Production needs defined adverse-event and product-quality intake, ownership, capture, and timing.
 
-Core endpoints include taxonomy, preview, answer search, request creation, matches, peer selection/decision, structured answer, contact consent/retrieval, and report.
+Core endpoints include taxonomy, question/answer privacy preview, answer search, request creation, matches, peer selection/decision, reviewed answer submission, contact consent/retrieval, and report.
 
 ## Relay Network Graph (expertise and trust)
 
@@ -171,7 +171,7 @@ Matching is a deterministic funnel that keeps Doctor Connect's rule that hard fi
 
 Ranking over the eligible set is a **contextual bandit (reinforcement learning)**: the request plus each peer's expertise evidence is the context, the eligible peers are the actions, and consented feedback (`yes`/`somewhat`/`no` → `1.0`/`0.5`/`0.0`) is the reward, kept as a Beta posterior per (expert, topic). The default policy is deterministic **UCB** (exploit proven experts, add a shrinking exploration bonus so promising under-connected peers still surface; bonus is `0` with no feedback yet, keeping the demo reproducible); optional seeded **Thompson sampling** is the stochastic variant. All hard filters run before the bandit, and the trust estimate stays clamped to its bounded weight so exploration never surfaces an ineligible peer or overrides real expertise.
 
-The graph learns: every completed, consented connection produces structured feedback (useful? outcome?) that updates the Trust Graph posterior, so later matches improve (better graph → better matches → more useful connections → more feedback). The hackathon uses structured categorical need selection; any future Gemini intent extraction is explanation-only, needs a deterministic fallback, and cannot decide eligibility or the final peer. The graph stores zero patient data.
+The graph learns: every completed, consented connection produces structured feedback (useful? outcome?) that updates the Trust Graph posterior, so later matches improve (better graph → better matches → more useful connections → more feedback). The hackathon derives limited internal matching signals from reviewed requester text without changing it; any future Gemini intent extraction needs a deterministic fallback and cannot decide eligibility or the final peer. The graph stores zero patient data.
 
 ## Ledger
 
@@ -216,7 +216,7 @@ The strongest proof of shared infrastructure is the common audit timeline with o
 
 1. State that Relay applies one consent and provenance layer to three confirmed gaps.
 2. Mirror: show a neutral class-level comparison and open cohort/coverage details.
-3. Connect: assemble a categorical question, show only eligible peers, explain the match, and demonstrate that consent changes the result and gates contact.
+3. Connect: enter and review a scoped free-text question, show the privacy/safety process, show only eligible peers, explain the match, and demonstrate that consent gates contact.
 4. Updates: select a reviewed product change, show the before/after record and four eligible specialists, then continue into Doctor Connect with approved topic context only.
 5. Open the shared audit timeline for all three products.
 
