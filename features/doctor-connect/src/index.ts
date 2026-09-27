@@ -221,6 +221,121 @@ export const ANSWER_APPROACHES: readonly AnswerApproach[] = [
 export const MONITORING_CONSIDERATIONS: readonly MonitoringConsideration[] = ["Renal trend", "Tolerance", "Volume status", "Follow-up cadence", "Glycemic control", "Blood pressure", "Weight trend", "Laboratory frequency"];
 export const ESCALATION_CONSIDERATIONS: readonly EscalationConsideration[] = ["No escalation needed", "Specialist or care-team review", "Urgent referral", "Reassess at the next follow-up"];
 
+// The responder still writes one capped free-text answer. These labelled lines are an editable
+// scaffold inside that text, not separate stored fields, so the same guardrail review covers all of it.
+export type AnswerSectionId = "approach" | "monitoring" | "escalation" | "context";
+export type AnswerSection = { id: AnswerSectionId; label: string; required: boolean; prompt: string; separator: string; suggestions: readonly string[]; exclusive: boolean };
+export type ParsedAnswerSection = { id: AnswerSectionId; label: string; value: string };
+
+export const ANSWER_SECTIONS: readonly AnswerSection[] = [
+  { id: "approach", label: "Approach", required: true, prompt: "How you generally approach this situation", separator: "; ", suggestions: ANSWER_APPROACHES, exclusive: false },
+  { id: "monitoring", label: "Monitoring", required: true, prompt: "What you track and how often", separator: ", ", suggestions: MONITORING_CONSIDERATIONS, exclusive: false },
+  { id: "escalation", label: "Escalation", required: true, prompt: "When you involve a specialist or the care team", separator: "; ", suggestions: ESCALATION_CONSIDERATIONS, exclusive: true },
+  { id: "context", label: "Additional context", required: false, prompt: "Caveats, practice-setting notes, or what you would watch for", separator: "; ", suggestions: [], exclusive: false },
+];
+
+const sectionLinePattern = new RegExp(`^\\s*(${ANSWER_SECTIONS.map((section) => section.label).join("|")})\\s*:[ \\t]*(.*)$`, "i");
+
+function sectionForLabel(label: string) {
+  return ANSWER_SECTIONS.find((section) => section.label.toLowerCase() === label.toLowerCase());
+}
+
+export function buildAnswerTemplate(): string {
+  return ANSWER_SECTIONS.map((section) => `${section.label}: `).join("\n");
+}
+
+type AnswerLayout = { preamble: string[]; blocks: Array<{ id: AnswerSectionId; lines: string[] }> };
+
+function layoutAnswer(text: string): AnswerLayout {
+  const layout: AnswerLayout = { preamble: [], blocks: [] };
+  for (const line of text.split(/\r?\n/)) {
+    const match = line.match(sectionLinePattern);
+    const section = match ? sectionForLabel(match[1]) : undefined;
+    if (match && section) layout.blocks.push({ id: section.id, lines: [match[2]] });
+    else if (layout.blocks.length) layout.blocks[layout.blocks.length - 1].lines.push(line);
+    else layout.preamble.push(line);
+  }
+  return layout;
+}
+
+function blockValue(lines: string[]) {
+  return lines.map((line) => line.trimEnd()).join("\n").trim();
+}
+
+/** Returns labelled sections in written order, or null when the answer does not use the scaffold. */
+export function parseAnswerSections(text: string): { preamble: string; sections: ParsedAnswerSection[] } | null {
+  const layout = layoutAnswer(text);
+  if (!layout.blocks.length) return null;
+  return {
+    preamble: blockValue(layout.preamble),
+    sections: layout.blocks.map((block) => ({ id: block.id, label: ANSWER_SECTIONS.find((section) => section.id === block.id)!.label, value: blockValue(block.lines) })),
+  };
+}
+
+export function readAnswerSection(text: string, id: AnswerSectionId): string | undefined {
+  return parseAnswerSections(text)?.sections.find((section) => section.id === id)?.value;
+}
+
+export function writeAnswerSection(text: string, id: AnswerSectionId, value: string): string {
+  const section = ANSWER_SECTIONS.find((candidate) => candidate.id === id)!;
+  const layout = layoutAnswer(text);
+  const index = layout.blocks.findIndex((block) => block.id === id);
+  if (index >= 0) layout.blocks[index] = { id, lines: [value] };
+  else {
+    // Keep the canonical order when a physician deleted a heading and a suggestion restores it.
+    const order = ANSWER_SECTIONS.findIndex((candidate) => candidate.id === id);
+    const insertAt = layout.blocks.findIndex((block) => ANSWER_SECTIONS.findIndex((candidate) => candidate.id === block.id) > order);
+    layout.blocks.splice(insertAt < 0 ? layout.blocks.length : insertAt, 0, { id, lines: [value] });
+  }
+  const preamble = layout.preamble.join("\n").trimEnd();
+  const body = layout.blocks.map((block) => {
+    const label = ANSWER_SECTIONS.find((candidate) => candidate.id === block.id)!.label;
+    const [first, ...rest] = block.lines;
+    return [`${label}: ${first}`.trimEnd(), ...rest].join("\n").trimEnd();
+  }).join("\n");
+  return preamble ? `${preamble}\n${body}` : body;
+}
+
+function splitSectionItems(value: string, separator: string) {
+  const delimiter = separator.trim() === "," ? /\s*,\s*/ : /\s*;\s*/;
+  return value.replace(/\.\s*$/, "").split(delimiter).map((item) => item.trim()).filter(Boolean);
+}
+
+export function answerSectionHasSuggestion(text: string, id: AnswerSectionId, suggestion: string): boolean {
+  const section = ANSWER_SECTIONS.find((candidate) => candidate.id === id)!;
+  return splitSectionItems(readAnswerSection(text, id) ?? "", section.separator).some((item) => item.toLowerCase() === suggestion.toLowerCase());
+}
+
+/** Adds or removes one suggested phrase in a section while preserving anything the physician typed. */
+export function toggleAnswerSuggestion(text: string, id: AnswerSectionId, suggestion: string): string {
+  const section = ANSWER_SECTIONS.find((candidate) => candidate.id === id)!;
+  const items = splitSectionItems(readAnswerSection(text, id) ?? "", section.separator);
+  const selected = items.some((item) => item.toLowerCase() === suggestion.toLowerCase());
+  const next = selected
+    ? items.filter((item) => item.toLowerCase() !== suggestion.toLowerCase())
+    : [...(section.exclusive ? items.filter((item) => !section.suggestions.some((option) => option.toLowerCase() === item.toLowerCase())) : items), suggestion];
+  return writeAnswerSection(text, id, next.join(section.separator));
+}
+
+/** Required scaffold headings that are still present but have no content. */
+export function incompleteAnswerSections(text: string): AnswerSectionId[] {
+  const parsed = parseAnswerSections(text);
+  if (!parsed) return [];
+  return ANSWER_SECTIONS.filter((section) => section.required && parsed.sections.some((candidate) => candidate.id === section.id && !candidate.value)).map((section) => section.id);
+}
+
+/** Drops blank optional headings and trailing spaces; the result is shown in the draft before review. */
+export function tidyAnswerDraft(text: string): string {
+  const parsed = parseAnswerSections(text);
+  if (!parsed) return text.trim();
+  const optionalBlank = new Set(ANSWER_SECTIONS.filter((section) => !section.required).map((section) => section.id));
+  const body = parsed.sections
+    .filter((section) => section.value || !optionalBlank.has(section.id))
+    .map((section) => `${section.label}: ${section.value}`.trimEnd())
+    .join("\n");
+  return parsed.preamble ? `${parsed.preamble}\n${body}` : body;
+}
+
 export function assembleQuestion(selection: QuestionSelection): string {
   const approved = prepareQuestionSelection(selection);
   return `How do peers approach ${approved.topic} for ${approved.therapeuticArea} in ${approved.populationBand} patients with ${approved.conditionTag}?`;
@@ -241,6 +356,12 @@ export function isValidStructuredAnswer(answer: unknown): answer is Omit<Structu
 export function assembleStructuredAnswer(answer: Omit<StructuredPeerAnswer, "answeredAt" | "taxonomyVersion">): string {
   if (!isValidStructuredAnswer(answer)) throw new Error("Doctor Connect rejected an answer value outside the governed vocabulary.");
   return `Approach: ${answer.approach}. Monitoring: ${answer.monitoring.join(", ")}. Escalation: ${answer.escalation}.`;
+}
+
+/** Display form of a legacy enum-built answer using the same labelled lines as the free-text scaffold. */
+export function structuredAnswerDisplayText(answer: Omit<StructuredPeerAnswer, "answeredAt" | "taxonomyVersion">): string {
+  if (!isValidStructuredAnswer(answer)) throw new Error("Doctor Connect rejected an answer value outside the governed vocabulary.");
+  return `Approach: ${answer.approach}\nMonitoring: ${answer.monitoring.join(", ")}\nEscalation: ${answer.escalation}`;
 }
 
 export function isGuardedPeerAnswer(answer: unknown): answer is GuardedPeerAnswer {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { hcpProfiles } from "@relay/demo-seed";
 import type { QuestionSelection } from "@relay/domain";
-import { ANSWER_APPROACHES, ageToPopulationBand, assembleQuestion, assembleStructuredAnswer, assertSafeQuestionSelection, inferMatchingTagIds, isValidStructuredAnswer, prepareAnswerText, prepareQuestionSelection, rankEligiblePeers, reviewAnswerText, reviewQuestionField, reviewQuestionSelection } from "./index";
+import { ANSWER_APPROACHES, ANSWER_SECTIONS, ageToPopulationBand, answerSectionHasSuggestion, buildAnswerTemplate, incompleteAnswerSections, parseAnswerSections, tidyAnswerDraft, toggleAnswerSuggestion, writeAnswerSection, assembleQuestion, assembleStructuredAnswer, assertSafeQuestionSelection, inferMatchingTagIds, isValidStructuredAnswer, prepareAnswerText, prepareQuestionSelection, rankEligiblePeers, reviewAnswerText, reviewQuestionField, reviewQuestionSelection } from "./index";
 
 const selection: QuestionSelection = {
   therapeuticArea: "GLP-1 receptor agonists",
@@ -149,5 +149,46 @@ describe("Doctor Connect", () => {
     const safetyEvent = "This may be an adverse event.";
     expect(reviewAnswerText(safetyEvent).safetyStop).toBe(true);
     expect(() => prepareAnswerText(safetyEvent)).toThrow(/privacy or safety changes/);
+  });
+
+  it("scaffolds one free-text answer with editable labelled sections", () => {
+    const template = buildAnswerTemplate();
+    expect(template).toBe("Approach: \nMonitoring: \nEscalation: \nAdditional context: ");
+    expect(incompleteAnswerSections(template)).toEqual(["approach", "monitoring", "escalation"]);
+
+    let draft = writeAnswerSection(template, "approach", "I start by reviewing baseline renal function");
+    draft = toggleAnswerSuggestion(draft, "monitoring", "Renal trend");
+    draft = toggleAnswerSuggestion(draft, "monitoring", "Tolerance");
+    draft = toggleAnswerSuggestion(draft, "escalation", "Urgent referral");
+    draft = toggleAnswerSuggestion(draft, "escalation", "Specialist or care-team review");
+    expect(answerSectionHasSuggestion(draft, "monitoring", "Tolerance")).toBe(true);
+    expect(answerSectionHasSuggestion(draft, "escalation", "Urgent referral")).toBe(false);
+
+    draft = toggleAnswerSuggestion(draft, "monitoring", "Renal trend");
+    expect(incompleteAnswerSections(draft)).toEqual([]);
+    const tidy = tidyAnswerDraft(draft);
+    expect(tidy).toBe("Approach: I start by reviewing baseline renal function\nMonitoring: Tolerance\nEscalation: Specialist or care-team review");
+    expect(parseAnswerSections(tidy)?.sections.map((section) => section.id)).toEqual(["approach", "monitoring", "escalation"]);
+    expect(reviewAnswerText(tidy)).toMatchObject({ status: "ready", safetyStop: false });
+  });
+
+  it("keeps physician-typed text when suggestions change a section", () => {
+    const draft = "Approach: Shared decision-making\nMonitoring: eGFR every 3 months\nEscalation: If eGFR keeps falling";
+    const withChip = toggleAnswerSuggestion(draft, "monitoring", "Blood pressure");
+    expect(parseAnswerSections(withChip)?.sections[1].value).toBe("eGFR every 3 months, Blood pressure");
+    const escalated = toggleAnswerSuggestion(draft, "escalation", "Specialist or care-team review");
+    expect(parseAnswerSections(escalated)?.sections[2].value).toBe("If eGFR keeps falling; Specialist or care-team review");
+    expect(parseAnswerSections("Plain prose answer without headings.")).toBeNull();
+    expect(incompleteAnswerSections("Plain prose answer without headings.")).toEqual([]);
+  });
+
+  it("restores a deleted heading in canonical order and keeps multi-line section text", () => {
+    const draft = "Approach: Review baseline context\nsecond line of approach\nEscalation: No escalation needed";
+    const restored = writeAnswerSection(draft, "monitoring", "Renal trend");
+    expect(restored).toBe("Approach: Review baseline context\nsecond line of approach\nMonitoring: Renal trend\nEscalation: No escalation needed");
+    expect(parseAnswerSections(restored)?.sections[0].value).toBe("Review baseline context\nsecond line of approach");
+    for (const section of ANSWER_SECTIONS.filter((candidate) => candidate.required)) {
+      for (const suggestion of section.suggestions) expect(reviewAnswerText(`${section.label}: ${suggestion}`).status).toBe("ready");
+    }
   });
 });

@@ -50,7 +50,11 @@ export function ConsultProvider({ children }: { children: ReactNode }) {
     const channel = new BroadcastChannel(channelName);
     channel.onmessage = (event: MessageEvent<ConsultRequest[]>) => replaceRequests(event.data);
     channelRef.current = channel;
-    return () => channel.close();
+    return () => {
+      // Child effects can commit before this provider re-subscribes (e.g. StrictMode remounts); never keep a closed channel.
+      if (channelRef.current === channel) channelRef.current = null;
+      channel.close();
+    };
   }, [replaceRequests]);
 
   useEffect(() => {

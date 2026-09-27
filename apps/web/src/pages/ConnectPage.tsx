@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, BadgeCheck, BellRing, Check, ChevronRight, CircleAlert, Clock3, Eye, Info, LockKeyhole, Network, ScanLine, ShieldCheck, Trash2, UserRoundCheck } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import type { QuestionSelection } from "@relay/domain";
-import { assembleQuestion, assembleStructuredAnswer, guardrailIssueLabel, inferMatchingTagIds, isCompleteQuestionSelection, isGuardedPeerAnswer, isValidStructuredAnswer, reviewQuestionSelection, type FieldGuardrailReview, type QuestionField, type QuestionGuardrailReview } from "@relay/doctor-connect";
+import { assembleQuestion, structuredAnswerDisplayText, guardrailIssueLabel, inferMatchingTagIds, isCompleteQuestionSelection, isGuardedPeerAnswer, isValidStructuredAnswer, reviewQuestionSelection, type FieldGuardrailReview, type QuestionField, type QuestionGuardrailReview } from "@relay/doctor-connect";
 import { buildPeerNeed, matchPeers } from "@relay/network-graph";
 import { authorizeUse, readConnectCandidates, readNetworkGraph } from "@relay/relay-core";
 import { useConsults } from "../consult-context";
 import { useDemo } from "../demo-context";
 import { useAccountAuth } from "../auth-context";
 import { LockedValue, PageHeading, StatusBadge } from "../components/ui";
+import { PeerAnswerBody } from "../components/PeerAnswerBody";
 
 const steps = ["Your question", "Review", "Choose a peer", "Answer"];
 
@@ -118,7 +119,7 @@ export function ConnectPage() {
   const responseText = isGuardedPeerAnswer(activeRequest?.answer)
     ? activeRequest.answer.responseText
     : activeRequest?.answer && isValidStructuredAnswer(activeRequest.answer)
-      ? assembleStructuredAnswer(activeRequest.answer)
+      ? structuredAnswerDisplayText(activeRequest.answer)
       : "The physician response is unavailable in the current format.";
 
   useEffect(() => {
@@ -254,7 +255,7 @@ export function ConnectPage() {
 
     {step === 3 && activeRequest?.answer ? <div className="response-layout">
       {showAnswerNotification ? <div className="answer-notification"><BellRing size={20} /><span><strong>{activeRequest.recipientName} answered your question</strong>The response is ready below.</span><button onClick={() => setShowAnswerNotification(false)} aria-label="Dismiss answer notification">×</button></div> : null}
-      <section className="panel response-card"><div className="response-heading"><div className="peer-avatar small">{activeRequest.recipientName.split(" ").slice(1, 3).map((word) => word[0]).join("")}</div><div><span>Privacy-reviewed response from</span><h2>{activeRequest.recipientName}</h2><p>{activeRequest.recipientSpecialty}</p></div><StatusBadge tone="success">Answered</StatusBadge></div><div className="question-recap">{activeRequest.question}</div><div className="peer-answer-text"><span>Physician response</span><p>{responseText}</p></div><div className="peer-experience-note"><Info size={16} />Peer experience, not medical advice from Impiricus or Relay.</div></section>
+      <section className="panel response-card"><div className="response-heading"><div className="peer-avatar small">{activeRequest.recipientName.split(" ").slice(1, 3).map((word) => word[0]).join("")}</div><div><span>Privacy-reviewed response from</span><h2>{activeRequest.recipientName}</h2><p>{activeRequest.recipientSpecialty}</p></div><StatusBadge tone="success">Answered</StatusBadge></div><div className="question-recap">{activeRequest.question}</div><div className="peer-answer-text"><span>Physician response</span><PeerAnswerBody text={responseText} /></div><div className="peer-experience-note"><Info size={16} />Peer experience, not medical advice from Impiricus or Relay.</div></section>
       <aside className="panel contact-panel"><LockKeyhole size={24} /><h2>Continue as colleagues</h2><p>Contact information is revealed only after both physicians independently approve the selected channel.</p><div className="consent-row"><span><UserRoundCheck size={18} />Your approval</span><button className={activeRequest.requesterContactApproved ? "consent-button approved" : "consent-button"} onClick={toggleRequesterContact}>{activeRequest.requesterContactApproved ? "Approved" : "Approve email"}</button></div><div className="consent-row"><span><BadgeCheck size={18} />Peer approval</span><span className={activeRequest.recipientContactApproved ? "consent-state approved" : "consent-state"}>{activeRequest.recipientContactApproved ? "Approved" : "Waiting"}</span></div><LockedValue revealed={contactRevealed} value={recipientEmail} /><div className="contact-disclosure">Communication occurs outside Relay and is not monitored here. Professional, privacy, and organizational obligations continue to apply.</div></aside>
       <div className="response-actions"><button className="button secondary" onClick={startAnotherQuestion}>Start another question</button></div>
     </div> : null}

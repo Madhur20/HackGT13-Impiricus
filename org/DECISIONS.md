@@ -4,6 +4,14 @@ This file records durable decisions. New entries should include a date, status, 
 
 ## Accepted baseline decisions
 
+### 2026-09-27 — Responder answer opens with an editable structured scaffold
+
+- **Status:** Accepted; refines the guarded-text responder lifecycle
+- **Decision:** The single capped responder answer is pre-filled with labelled `Approach`, `Monitoring`, `Escalation`, and optional `Additional context` lines. Suggestion chips drawn from the existing governed vocabularies write into those lines, and the physician can edit, delete, or replace any of it. Required headings that are still present must be filled or removed before review; blank optional headings are removed visibly before the scan. Answers that use the labels are displayed as sections to both physicians.
+- **Reason:** Peer answers are easier to write consistently and faster to scan when they follow a common clinical shape, without losing the expressiveness of free text.
+- **Boundary:** The scaffold is presentation only. Storage is still one reviewed free-text value with the same guardrail, preview, confirmation, and disposal lifecycle; no separate dose, patient-narrative, or attachment field is introduced.
+- **Affected:** Inbox response builder, requester response view, Doctor Connect answer helpers and tests.
+
 ### 2026-09-27 — Responder uses the same explicit guarded-text lifecycle
 
 - **Status:** Accepted; supersedes structured-only responder input

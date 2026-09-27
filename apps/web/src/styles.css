@@ -1026,3 +1026,49 @@ h1, h2, .welcome-copy h1, .page-heading h1, .editorial-heading h2, .change-narra
   .auth-card { padding: 30px 20px; border-radius: 23px; }
   .auth-card-heading h2 { font-size: 45px; }
 }
+
+/* Doctor Connect structured response composer */
+.answer-composer { padding: 18px 20px; display: grid; gap: 12px; border: 1px solid #e3ddf7; border-radius: 16px; background: linear-gradient(180deg, #fbfaff 0%, #ffffff 100%); }
+.answer-composer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.answer-composer-head span { color: #6843d2; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .75px; }
+.answer-composer-head p { margin: 4px 0 0; color: #667188; font-size: 11px; line-height: 1.5; }
+.composer-reset { flex: 0 0 auto; padding: 7px 12px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #d9d2f3; border-radius: 999px; color: #5a3fc4; background: white; cursor: pointer; font: inherit; font-size: 10px; font-weight: 800; transition: border-color .15s ease, background .15s ease; }
+.composer-reset:hover { border-color: #a996ea; background: #f7f4ff; }
+.composer-row { padding-top: 12px; display: grid; grid-template-columns: 138px minmax(0, 1fr); gap: 14px; border-top: 1px dashed #e7e2f6; }
+.composer-row-label strong, .composer-row-label small { display: block; }
+.composer-row-label strong { color: #172342; font-family: "Playfair Display", Georgia, serif; font-size: 15px; font-weight: 600; }
+.composer-row-label small { margin-top: 3px; color: #7b8595; font-size: 10px; font-weight: 700; }
+.composer-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.composer-chip { min-height: 32px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 5px; border: 1px solid #d9e0e6; border-radius: 999px; color: #3b4760; background: white; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; line-height: 1.3; text-align: left; transition: border-color .15s ease, background .15s ease, color .15s ease; }
+.composer-chip:hover { border-color: #b9a8ee; color: #4c32b3; }
+.composer-chip.active { border-color: #7654df; color: #4527a8; background: #f1ecff; box-shadow: inset 0 0 0 1px rgba(118,84,223,.18); }
+.composer-chip:focus-visible, .composer-reset:focus-visible { outline: 2px solid #7654df; outline-offset: 2px; }
+.answer-text-field { display: grid; gap: 10px; }
+.answer-text-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.answer-text-heading label { color: #344158; font-size: 12px; font-weight: 800; }
+.answer-text-heading small { color: #7b8595; font-size: 9px; font-weight: 700; }
+.answer-text-field textarea { min-height: 200px; padding: 14px 15px; font-size: 13px; line-height: 1.75; }
+.answer-section-status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.answer-section-status > span { padding: 4px 10px; display: inline-flex; align-items: center; gap: 5px; border: 1px solid #e1e7ea; border-radius: 999px; color: #6b7688; background: #f5f7f9; font-size: 10px; font-weight: 700; }
+.answer-section-status > span i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .55; }
+.answer-section-status > span.filled { border-color: #c6e6da; color: #23735f; background: #eef9f4; }
+.answer-section-status > span.missing { border-color: #f0dcb0; color: #8a6214; background: #fff8ec; }
+.answer-section-status > span.removed { border-style: dashed; color: #9aa3b1; background: transparent; }
+.answer-section-status > b { margin-left: auto; color: #68758a; font-size: 10px; font-weight: 800; }
+.answer-incomplete { padding: 10px 13px; display: flex; align-items: flex-start; gap: 8px; border: 1px solid #f0dcb0; border-radius: 10px; color: #8a6214; background: #fff8ec; font-size: 11px; line-height: 1.45; }
+.answer-incomplete svg { flex: 0 0 auto; margin-top: 1px; }
+
+/* Structured physician answer, shared by the Inbox preview and the requester's response view */
+.answer-sections dl { margin: 8px 0 0; display: grid; }
+.answer-section { padding: 11px 0; display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 16px; border-top: 1px solid #e8e3f7; }
+.answer-section:first-child { border-top: 0; padding-top: 4px; }
+.answer-section dt { padding-top: 2px; color: #6843d2; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .6px; }
+.answer-section dd { margin: 0; color: #1d2944; font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.answer-sections-preamble { white-space: pre-wrap; }
+
+@media (max-width: 650px) {
+  .answer-composer { padding: 16px; }
+  .answer-composer-head { flex-direction: column; }
+  .composer-row, .answer-section { grid-template-columns: 1fr; gap: 6px; }
+  .answer-section-status > b { width: 100%; margin-left: 0; }
+}
