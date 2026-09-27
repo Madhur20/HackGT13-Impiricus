@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/lato": "^5.3.0",
+    "@fontsource/playfair-display": "^5.3.0",
     "@relay/audit": "0.1.0",
     "@relay/demo-seed": "0.1.0",
     "@relay/doctor-connect": "0.1.0",

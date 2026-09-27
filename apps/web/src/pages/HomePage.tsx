@@ -1,6 +1,13 @@
+import { useState } from "react";
 import { Activity, ArrowRight, BellRing, Network, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useDemo } from "../demo-context";
+
+// Streamed from DocUpdate (an ImpiricusHealth service) rather than bundled, so the
+// asset is not republished from this repo. The static panel background remains the
+// fallback when the stream is unavailable or the viewer prefers reduced motion.
+const WELCOME_VIDEO_URL = "https://www.docupdate.io/assets/wp/2025/07/doctor_home_.mp4";
+const prefersReducedMotion = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const doctorActions = [
   {
@@ -28,11 +35,15 @@ const doctorActions = [
 
 export function HomePage() {
   const { persona } = useDemo();
+  const [videoEnabled, setVideoEnabled] = useState(() => !prefersReducedMotion());
   return (
     <div className="simple-home">
-      <section className="welcome-panel">
+      <section className={videoEnabled ? "welcome-panel has-video" : "welcome-panel"}>
+        {videoEnabled && <>
+          <video className="welcome-video" src={WELCOME_VIDEO_URL} autoPlay muted loop playsInline aria-hidden="true" tabIndex={-1} onError={() => setVideoEnabled(false)} />
+          <div className="welcome-video-shade" aria-hidden="true" />
+        </>}
         <div className="welcome-copy">
-          <div className="eyebrow light">Relay for Impiricus</div>
           <h1>Welcome, {persona.name}.</h1>
           <p>What would you like to explore today?</p>
         </div>
