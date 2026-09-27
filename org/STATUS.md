@@ -46,6 +46,13 @@ The next demo-hardening milestone is complete when:
 
 ## Iteration log
 
+### 2026-09-26 — Merged redesigned UI with the model; wired the bandit into Doctor Connect
+
+- **Changed:** Merged the `logic` model branch (peer clustering, Network Graph, contextual-bandit matcher, synthetic graph fixtures) into `GPT-POC` (redesigned UI). Resolved conflicts in `README.md`, `MirrorPage.tsx` (kept the persona-specific Mirror data and the peer-discovery panel), and `org/` context. Wired `@relay/network-graph` `matchPeers` (deterministic UCB) into the redesigned `ConnectPage`: the governed question maps to expertise tags (drug class + condition), the eligible pool is ranked by the bandit, and step 2 now shows the live matching funnel and an "Exploring" badge for exploration-surfaced peers. Added `@relay/network-graph` as an `apps/web` dependency.
+- **Verified:** `npm run check` passes TypeScript validation, 29 tests, and the production build. Verified live in the in-IDE browser at `/connect`: funnel narrows 33 → 21 → 19 → 19 → 6, validated experts rank first with prior-outcome reasons, and unproven eligible peers surface with the exploration reason. The `Demo consent change` toggle still drops a candidate via the policy engine.
+- **Open:** Feedback capture in the UI does not yet write back into `trustEdges` (the flywheel is exercised in tests, not from the live UI); no policy toggle (UCB/Thompson) surfaced to users; matching is not filtered by a target specialty (ranks purely on expertise + trust across eligible peers).
+- **Next:** Persist post-connection feedback from the UI into the trust graph and reflect it in the audit timeline; optionally expose the funnel/exploration in the demo script.
+
 ### 2026-09-26 — Readability, focused Updates, and persona data
 
 - **Changed:** Repaired the Doctor Connect step connector, increased Connect and Mirror typography, strengthened Mirror class-control and homepage eyebrow contrast, replaced the stacked Updates feed with a left selector and focused right-side panel with previous/next controls, restored four eligible specialist cards with a derived count, and made both HCP personas use distinct Mirror, Connect, and Updates fixtures.

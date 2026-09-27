@@ -2,12 +2,27 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, BadgeCheck, Check, ChevronRight, CircleAlert, Clock3, Info, LockKeyhole, Network, ShieldCheck, UserRoundCheck } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import type { QuestionSelection } from "@relay/domain";
-import { assembleQuestion, rankEligiblePeers } from "@relay/doctor-connect";
-import { authorizeUse, readConnectCandidates } from "@relay/relay-core";
+import { assembleQuestion } from "@relay/doctor-connect";
+import { buildPeerNeed, matchPeers } from "@relay/network-graph";
+import { authorizeUse, readConnectCandidates, readNetworkGraph } from "@relay/relay-core";
 import { useDemo } from "../demo-context";
 import { LockedValue, PageHeading, StatusBadge } from "../components/ui";
 
 const steps = ["Your question", "Review", "Choose a peer", "Answer"];
+
+// Map the governed categorical question to Network Graph expertise tags so the
+// contextual-bandit matcher ranks on prescribing/condition evidence, not titles.
+const AREA_TAG_ID: Record<string, string> = {
+  "SGLT2 inhibitors": "sglt2",
+  "GLP-1 therapies": "glp1",
+  "Diabetes management": "diabetes",
+};
+const CONDITION_TAG_ID: Record<string, string> = {
+  "Renal impairment": "renal_impairment",
+  "Cardiovascular disease": "cardiovascular_disease",
+  Diabetes: "diabetes",
+  "Hepatic impairment": "hepatic_impairment",
+};
 
 export function ConnectPage() {
   const [params] = useSearchParams();
@@ -44,9 +59,27 @@ export function ConnectPage() {
     setQuestionConfirmed(false);
   }, [params, persona.id]);
 
+  const graph = useMemo(() => readNetworkGraph().data, []);
   const brokerCandidates = useMemo(() => readConnectCandidates().data, []);
   const candidates = useMemo(() => brokerCandidates.map((profile, index) => index === 0 && topPeerRevoked ? { ...profile, matchingConsent: false } : profile), [brokerCandidates, topPeerRevoked]);
-  const matches = useMemo(() => rankEligiblePeers(selection, candidates), [selection, candidates]);
+
+  // Build a validated PeerNeed from the selection and rank eligible peers with
+  // the deterministic UCB contextual bandit over the synthetic Network Graph.
+  const need = useMemo(() => buildPeerNeed({
+    expertiseTagIds: [AREA_TAG_ID[selection.therapeuticArea], CONDITION_TAG_ID[selection.conditionTag]].filter((tagId): tagId is string => Boolean(tagId)),
+    helpMode: "async_question",
+  }), [selection.therapeuticArea, selection.conditionTag]);
+  const matchResult = useMemo(() => matchPeers({
+    need,
+    candidates,
+    expertiseEdges: graph.expertiseEdges,
+    peerHelpProfiles: graph.peerHelpProfiles,
+    trustEdges: graph.trustEdges,
+    tags: graph.tags,
+    limit: 6,
+    policy: "ucb",
+  }), [need, candidates, graph]);
+  const matches = matchResult.matches;
   const selectedPeer = matches.find((match) => match.profile.id === selectedPeerId) ?? matches[0];
   const question = assembleQuestion(selection);
   const safetyStop = selection.conditionTag === "Suspected safety event";
@@ -65,7 +98,7 @@ export function ConnectPage() {
   const findPeers = () => {
     if (!questionConfirmed) return;
     setStep(2);
-    record({ product: "Connect", action: "PEER_MATCHING", purpose: "PEER_MATCHING", decision: "allow", summary: `Returned ${matches.length} eligible peers after consent, verification, and availability filters.` });
+    record({ product: "Connect", action: "PEER_MATCHING", purpose: "PEER_MATCHING", decision: "allow", summary: `Ranked ${matches.length} eligible peers with the contextual-bandit matcher (UCB) after consent, verification, and availability filters.` });
   };
 
   const sendRequest = (peerId: string) => {
@@ -109,10 +142,13 @@ export function ConnectPage() {
       </div>}
 
       {step === 2 && <div className="stack-md">
-        <div className="filter-proof"><ShieldCheck size={18} /><span><strong>{matches.length} eligible peers</strong>Each physician is verified, available, and opted in.</span><label className="demo-toggle"><input type="checkbox" checked={topPeerRevoked} onChange={(e) => { setTopPeerRevoked(e.target.checked); setSelectedPeerId(null); record({ product: "Connect", action: "CONSENT_CHANGED", purpose: "PEER_MATCHING", decision: "allow", summary: e.target.checked ? "Revoked a top candidate's matching consent; results recomputed immediately." : "Restored the synthetic candidate's matching consent." }); }} /> Demo consent change</label></div>
+        <div className="filter-proof"><ShieldCheck size={18} /><span><strong>{matches.length} eligible peers</strong>Ranked on prescribing and condition evidence plus validated peer outcomes — not titles. Each physician is verified, available, and opted in.</span><label className="demo-toggle"><input type="checkbox" checked={topPeerRevoked} onChange={(e) => { setTopPeerRevoked(e.target.checked); setSelectedPeerId(null); record({ product: "Connect", action: "CONSENT_CHANGED", purpose: "PEER_MATCHING", decision: "allow", summary: e.target.checked ? "Revoked a top candidate's matching consent; results recomputed immediately." : "Restored the synthetic candidate's matching consent." }); }} /> Demo consent change</label></div>
+        <ol className="match-funnel" aria-label="How Relay narrowed the peers">
+          {matchResult.funnel.map((funnelStep) => <li key={funnelStep.label}><span className="funnel-count">{funnelStep.count}</span><span className="funnel-label">{funnelStep.label}</span></li>)}
+        </ol>
         <div className="match-grid">
           {matches.map((match, index) => <article className={selectedPeerId === match.profile.id ? "panel match-card selected" : "panel match-card"} key={match.profile.id}>
-            <div className="match-rank">Match {index + 1}</div><div className="peer-avatar">{match.profile.displayName.split(" ").slice(1, 3).map((word) => word[0]).join("")}</div><h3>{match.profile.displayName}</h3><p>{match.profile.specialty} · {match.profile.state}</p><div className="match-score"><strong>{Math.round(match.score * 100)}%</strong><span>topic match</span></div><ul>{match.reasons.slice(0, 2).map((reason) => <li key={reason}><Check size={14} />{reason}</li>)}</ul><button className="button primary wide" onClick={() => sendRequest(match.profile.id)}>{selectedPeerId === match.profile.id ? "Request sent" : "Ask this physician"}<ChevronRight size={16} /></button>
+            <div className="match-rank">Match {index + 1}{match.trustConnections === 0 && <span className="explore-chip" title="Surfaced by the bandit's exploration to grow the network">Exploring</span>}</div><div className="peer-avatar">{match.profile.displayName.split(" ").slice(1, 3).map((word) => word[0]).join("")}</div><h3>{match.profile.displayName}</h3><p>{match.profile.specialty} · {match.profile.state}</p><div className="match-score"><strong>{Math.round(match.score * 100)}%</strong><span>peer fit</span></div><ul>{match.reasons.slice(0, 2).map((reason) => <li key={reason}><Check size={14} />{reason}</li>)}</ul><button className="button primary wide" onClick={() => sendRequest(match.profile.id)}>{selectedPeerId === match.profile.id ? "Request sent" : "Ask this physician"}<ChevronRight size={16} /></button>
           </article>)}
         </div>
         {requestState === "sent" && <div className="request-banner"><Clock3 size={21} /><div><strong>Request delivered without contact details</strong><span>For the demo, simulate the peer accepting and responding.</span></div><button className="button primary" onClick={acceptAndAnswer}>Simulate acceptance</button></div>}
