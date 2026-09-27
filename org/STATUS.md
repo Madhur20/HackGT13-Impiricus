@@ -46,6 +46,13 @@ The next demo-hardening milestone is complete when:
 
 ## Iteration log
 
+### 2026-09-26 — User-facing README rewrite
+
+- **Changed:** Rewrote `README.md` as a firm, user-facing product overview: leads with the underserved-doctor problem, contrasts with headline/LinkedIn matching, positions Relay as a continuously learning matcher on prescribing/drug/region history and validated peer outcomes, describes the three physician actions (find a peer, see who practices like you, discuss medicine changes via Ledger with a "how do we incorporate this change into our workflow" message to specialists), and states the data-storage model (synthetic in-memory today; MongoDB + Neo4j behind the broker in production). Removed the self-questioning "Is this AI orchestration?" section per request.
+- **Verified:** Documentation-only; no code changed. Links and section references checked against the repo.
+- **Open:** None specific to the README.
+- **Next:** Generate synthetic Network Graph data and validate the matching + learning logic on it.
+
 ### 2026-09-26 — Relay Network Graph documented and backend logic added
 
 - **Changed:** Added the Network Graph as the learning matching substrate for Doctor Connect. Wrote `docs/network-graph-plan.md`; updated `org/CONTEXT.md` (new section, derived profile, computations, collections, scope, acceptance criteria), `org/DECISIONS.md` (accepted decision), `org/README.md` (source list), and `docs/doctor-connect-plan.md` (forward reference). Added domain types (expertise tags/edges, help profiles, trust edges, need, match/funnel/result) and a new `@relay/network-graph` feature implementing evidence-combined expertise strength, a deterministic hard-filter-then-rank matching funnel, trust aggregation with saturation, and `recordConnectionOutcome` for the learning loop.
