@@ -37,7 +37,6 @@ export function ConnectPage() {
     populationBand: "Adults 40–64",
     conditionTag: "Renal impairment",
   });
-  const [topPeerRevoked, setTopPeerRevoked] = useState(false);
   const [selectedPeerId, setSelectedPeerId] = useState<string | null>(null);
   const activeRequestStorageKey = `relay.active-consult.${persona.id}`;
   const [activeRequestId, setActiveRequestId] = useState<string | null>(() => window.localStorage.getItem(activeRequestStorageKey));
@@ -65,11 +64,7 @@ export function ConnectPage() {
   }, [params, persona.id]);
 
   const graph = useMemo(() => readNetworkGraph().data, []);
-  const brokerCandidates = useMemo(() => readConnectCandidates({ actorId: persona.id }).data, [persona.id]);
-  const candidates = useMemo(
-    () => brokerCandidates.map((profile, index) => index === 0 && topPeerRevoked ? { ...profile, matchingConsent: false } : profile),
-    [brokerCandidates, topPeerRevoked],
-  );
+  const candidates = useMemo(() => readConnectCandidates({ actorId: persona.id }).data, [persona.id]);
 
   const need = useMemo(() => buildPeerNeed({
     expertiseTagIds: [AREA_TAG_ID[selection.therapeuticArea], CONDITION_TAG_ID[selection.conditionTag]].filter((tagId): tagId is string => Boolean(tagId)),
@@ -114,7 +109,7 @@ export function ConnectPage() {
 
   const nextFromQuestion = () => {
     if (safetyStop) {
-      record({ product: "Connect", action: "SAFETY_STOP", purpose: "PEER_MATCHING", decision: "deny", summary: "A fictional safety-event selection stopped the peer workflow." });
+      record({ product: "Connect", action: "SAFETY_STOP", purpose: "PEER_MATCHING", decision: "deny", summary: "A safety-event selection stopped the peer workflow." });
       return;
     }
     setStep(1);
@@ -135,18 +130,6 @@ export function ConnectPage() {
     setActiveRequestId(request.id);
     window.localStorage.setItem(activeRequestStorageKey, request.id);
     record({ product: "Connect", action: "REQUEST_SENT", purpose: "PEER_MATCHING", decision: "allow", summary: "Sent one structured peer request without revealing contact information." });
-  };
-
-  const toggleDemoConsent = (revoked: boolean) => {
-    setTopPeerRevoked(revoked);
-    setSelectedPeerId(null);
-    record({
-      product: "Connect",
-      action: "CONSENT_CHANGED",
-      purpose: "PEER_MATCHING",
-      decision: "allow",
-      summary: revoked ? "Revoked a top candidate's matching consent; results recomputed immediately." : "Restored the synthetic candidate's matching consent.",
-    });
   };
 
   const toggleRequesterContact = () => {
@@ -185,7 +168,7 @@ export function ConnectPage() {
         </div>
         <details className="optional-details"><summary>Add general patient-group context <span>Optional</span></summary><div className="form-grid"><label><span>Age group</span><select value={selection.populationBand} onChange={(event) => setSelection({ ...selection, populationBand: event.target.value })}><option>Adults 18–40</option><option>Adults 40–64</option><option>Adults 65–89</option><option>Older adults 90+</option></select></label><label><span>Condition</span><select value={selection.conditionTag} onChange={(event) => setSelection({ ...selection, conditionTag: event.target.value })}><option>Renal impairment</option><option>Cardiovascular disease</option><option>Diabetes</option><option>Hepatic impairment</option><option>Suspected safety event</option></select></label></div></details>
         <div className="builder-boundary"><ShieldCheck size={18} /><span><strong>Keep it general</strong>Relay does not accept patient names, narratives, or attachments.</span></div>
-        {safetyStop ? <div className="safety-stop"><CircleAlert size={22} /><div><strong>This selection may describe a safety event</strong><p>Relay cannot continue this peer workflow. Use the fictional designated safety reporting route.</p></div></div> : null}
+        {safetyStop ? <div className="safety-stop"><CircleAlert size={22} /><div><strong>This selection may describe a safety event</strong><p>Relay cannot continue this peer workflow. Use the designated safety reporting route.</p></div></div> : null}
         <div className="panel-actions end"><button className="button primary" onClick={nextFromQuestion} disabled={safetyStop}>Review my question <ArrowRight size={17} /></button></div>
       </section>
     </div> : null}
@@ -193,7 +176,7 @@ export function ConnectPage() {
     {step === 1 ? <div className="preview-layout simplified"><section className="panel preview-card"><div className="preview-icon"><Network /></div><span>Your question</span><blockquote>“{question}”</blockquote><label className="confirmation required"><input type="checkbox" checked={questionConfirmed} onChange={(event) => setQuestionConfirmed(event.target.checked)} required aria-required="true" /><span><strong>Required</strong>This is a general practice question and does not describe a specific patient.</span></label><div className="prior-choice"><button className="button ghost-light" onClick={() => setStep(0)}><ArrowLeft size={16} /> Edit</button><button className="button primary" onClick={findPeers} disabled={!questionConfirmed}>Find a peer <ArrowRight size={17} /></button></div></section></div> : null}
 
     {step === 2 ? <div className="stack-md">
-      <div className="filter-proof"><ShieldCheck size={18} /><span><strong>{matches.length} eligible peers</strong>Ranked on prescribing and condition evidence plus validated peer outcomes — not titles. Each physician is verified, available, and opted in.</span><label className="demo-toggle"><input type="checkbox" checked={topPeerRevoked} onChange={(event) => toggleDemoConsent(event.target.checked)} /> Demo consent change</label></div>
+      <div className="filter-proof"><ShieldCheck size={18} /><span><strong>{matches.length} eligible peers</strong>Ranked on prescribing and condition evidence plus validated peer outcomes — not titles. Each physician is verified, available, and opted in.</span></div>
       <ol className="match-funnel" aria-label="How Relay narrowed the peers">{matchResult.funnel.map((funnelStep) => <li key={funnelStep.label}><span className="funnel-count">{funnelStep.count}</span><span className="funnel-label">{funnelStep.label}</span></li>)}</ol>
       <div className="match-grid">{matches.map((match, index) => <article className={selectedPeerId === match.profile.id ? "panel match-card selected" : "panel match-card"} key={match.profile.id}>
         <div className="match-rank">Match {index + 1}{match.trustConnections === 0 ? <span className="explore-chip" title="Surfaced by the bandit's exploration to grow the network">Exploring</span> : null}</div><div className="peer-avatar">{match.profile.displayName.split(" ").slice(1, 3).map((word) => word[0]).join("")}</div><h3>{match.profile.displayName}</h3><p>{match.profile.specialty} · {match.profile.state}</p><div className="match-score"><strong>{Math.round(match.score * 100)}%</strong><span>peer fit</span></div><ul>{match.reasons.slice(0, 2).map((reason) => <li key={reason}><Check size={14} />{reason}</li>)}</ul><button className="button primary wide" onClick={() => sendRequest(match.profile.id)}>{selectedPeerId === match.profile.id ? "Request sent" : "Ask this physician"}<ChevronRight size={16} /></button>

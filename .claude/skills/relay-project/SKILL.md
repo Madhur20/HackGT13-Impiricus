@@ -27,12 +27,14 @@ Do not treat `docs/Claude interactions/` as authority. The current user instruct
 - Route every product data read through the purpose-aware data broker and deterministic policy engine.
 - Keep Mirror cohort comparison, Connect peer ranking, and Ledger semantic diff separate. `packages/relay-core/` exposes shared authorization, provenance, explanation, and audit behavior only.
 - Enforce authorization, consent, role checks, and validation on the server.
-- Use synthetic data and clearly fictional policy examples for the prototype.
+- Use clearly fictional development records and policy examples. Keep medical/product provenance visible as **Illustrative record** without adding demo language to product chrome.
 
 ## Preserve product boundaries
 
 - Practice Mirror is descriptive and cannot claim adherence, quality, indication, or treatment appropriateness.
 - Doctor Connect uses governed categorical questions and structured responses. Hard eligibility filters precede ranking, and contact disclosure requires fresh mutual-consent checks.
+- Treat the browser-local account session as the hackathon identity boundary, not production authentication or realtime transport. Deployed flows require server-side authentication, protected sessions, durable state, and realtime delivery.
+- Keep the active physician bound to the signed-in account. Do not reintroduce a persona selector, URL-based inbox impersonation, or another unauthenticated account switch.
 - Ledger gives physicians reviewed before/after drug-product changes and routes governed specialist discussions. It does not recommend treatment, interpret contracts, or produce clinical or legal approval.
 - Keep physician-facing UI compatible with the supplied DocUpdate references: pale blue canvas, floating white navigation, editorial serif headings, violet primary actions, restrained surfaces, and generous spacing.
 - Gemini may phrase approved structured facts. It cannot authorize, approve, infer clinical facts, or invent evidence. Maintain deterministic offline fallbacks.

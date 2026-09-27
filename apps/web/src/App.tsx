@@ -13,23 +13,19 @@ import { personas } from "@relay/demo-seed";
 import { AuthPage } from "./pages/AuthPage";
 
 function ProductRoutes({ actorId }: { actorId: string }) {
-  return (
-    <DemoProvider actorId={actorId}>
-      <ConsultProvider>
-        <Routes>
-          <Route element={<AppShell />}>
-            <Route index element={<HomePage />} />
-            <Route path="mirror" element={<MirrorPage />} />
-            <Route path="connect" element={<ConnectPage />} />
-            <Route path="ledger" element={<LedgerPage />} />
-            <Route path="inbox" element={<InboxPage />} />
-            <Route path="audit" element={<AuditPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
-      </ConsultProvider>
-    </DemoProvider>
-  );
+  return <DemoProvider actorId={actorId}>
+    <ConsultProvider><Routes>
+      <Route element={<AppShell />}>
+        <Route index element={<HomePage />} />
+        <Route path="mirror" element={<MirrorPage />} />
+        <Route path="connect" element={<ConnectPage />} />
+        <Route path="ledger" element={<LedgerPage />} />
+        <Route path="inbox" element={<InboxPage />} />
+        <Route path="audit" element={<AuditPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes></ConsultProvider>
+  </DemoProvider>;
 }
 
 export function App() {

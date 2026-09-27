@@ -33,11 +33,13 @@ export function AppShell() {
           <nav className="nav-list" aria-label="Main navigation">
             {navigation.map(({ to, label, icon: Icon }) => {
               const count = to === "/inbox" ? inboxCount : to === "/connect" ? answerCount : 0;
-              return <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
+              return (
+              <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
                 <Icon size={19} strokeWidth={1.8} />
                 <span>{label}</span>
-                {count > 0 ? <b className="nav-count" aria-label={`${count} ${label} notification${count === 1 ? "" : "s"}`}>{count}</b> : null}
-              </NavLink>;
+                {count > 0 && <b className="nav-count" aria-label={`${count} ${label} notification${count === 1 ? "" : "s"}`}>{count}</b>}
+              </NavLink>
+              );
             })}
           </nav>
 

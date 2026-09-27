@@ -75,7 +75,13 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite and sign in with one of the seeded physician accounts. Use `npm run check` to run TypeScript validation, product-logic tests, and the production build.
+Open the local URL printed by Vite and sign in with one of the physician accounts below. Use `npm run check` to run TypeScript validation, product-logic tests, and the production build.
+
+The primary physician paths are `/mirror`, `/connect`, `/inbox`, `/ledger`, and `/audit`. The signed-in account determines the physician everywhere; Relay has no physician-switching control.
+
+## Sign-in and two-physician testing
+
+The browser build includes local account-based sign-in and sign-up. No environment variables or external identity service are required.
 
 | Physician | Email | Password |
 |---|---|---|
@@ -83,9 +89,21 @@ Open the local URL printed by Vite and sign in with one of the seeded physician 
 | Dr. Maya Chen | `maya.chen@relay.health` | `Relay2026!` |
 | Dr. Jordan Brooks | `jordan.brooks@relay.health` | `Relay2026!` |
 
-The primary product paths are `/mirror`, `/connect`, `/inbox`, `/ledger`, and `/audit`. The signed-in account determines the active physician. To test the two-sided flow, send a request from one seeded account, sign out, sign in as the selected physician, answer it in Inbox, then return to the requester account.
+The sign-up form activates an existing eligible physician profile by matching its NPI. The seeded profile NPIs are:
 
-The sign-up form can bind another browser-local account to an existing synthetic physician profile by NPI. NPI matching is not credential verification. Browser-local password hashing and storage are hackathon-only boundaries; a deployment requires server-side authentication, protected sessions, durable consult storage, server-side transition checks, and realtime delivery.
+- Maya: `1234567890`
+- Elena: `1098765432`
+- Jordan: `1357924680`
+
+To exercise the current same-browser flow:
+
+1. Sign in as Elena, send a Doctor Connect request to Maya, and sign out.
+2. Sign in as Maya, open Inbox, accept the request, submit the structured answer, and sign out.
+3. Sign back in as Elena. Doctor Connect shows an answer notification and opens directly to the final response step.
+
+The request, accounts, and active workflow survive account changes in the same browser through `BroadcastChannel` and `localStorage`.
+
+This local account store is intentionally scoped to the hackathon browser build. A deployed environment must replace it with server-side authentication, protected sessions, credential verification, an authenticated API, and a realtime datastore.
 
 ## Start here
 
@@ -115,7 +133,7 @@ packages/
   explanations/              grounded payloads, validators, and fallbacks
   audit/                     append-only audit events and hash chaining
   relay-core/                small public facade over shared governance behavior
-  demo-seed/                 deterministic synthetic demo fixtures
+  demo-seed/                 deterministic local development fixtures
 config/
   policies/                  fictional versioned policy configuration
   taxonomy/                  governed Doctor Connect taxonomy
@@ -123,9 +141,9 @@ config/
 tests/
   contract/                  shared interface and boundary tests
   integration/               cross-module server tests
-  e2e/                       critical user and demo paths
+  e2e/                       critical user and product paths
   fixtures/                  test-only immutable fixtures
-scripts/                     repeatable developer, seed, and demo commands
+scripts/                     repeatable developer, seed, and validation commands
 infra/                       local and deployment configuration
 docs/                        detailed product and system plans
 org/                         maintained contributor and AI context
