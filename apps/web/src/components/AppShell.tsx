@@ -1,5 +1,6 @@
 import { Activity, BellRing, Home, Inbox, LogOut, Network } from "lucide-react";
-import { NavLink, Outlet } from "react-router-dom";
+import { useEffect } from "react";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { POLICY_VERSION } from "@relay/relay-core";
 import { useDemo } from "../demo-context";
 import { useAccountAuth } from "../auth-context";
@@ -16,6 +17,11 @@ const physicianNavigation = [
 ];
 
 export function AppShell() {
+  const { pathname } = useLocation();
+  // Every page opens at the top, regardless of where the previous page was scrolled.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [pathname]);
   const { persona } = useDemo();
   const auth = useAccountAuth();
   const { requests } = useConsults();

@@ -110,7 +110,7 @@ Every request stores structured identity snapshots for the requester and recipie
 
 The requester retains an account-specific pointer to the active consult. When the responder accepts, the requester sees the accepted status. When the responder submits an answer, Doctor Connect displays an answered notification and restores the requester directly to the final response step after their next authenticated session. Inbox and Doctor Connect navigation badges represent unread events for the signed-in physician: opening a received request marks it read for the recipient, and opening its completed answer marks it read for the requester.
 
-After an answer is sent, each physician independently approves email sharing. One approval leaves the contact value hidden on both sides. Once both approvals are active, the requester sees the responder's account email and the responder sees the requester's account email. Revoking either approval hides both values again.
+After an answer is sent, each physician independently approves email sharing. One approval leaves the contact value hidden on both sides. Once both approvals are active, the requester sees the responder's account email and the responder sees the requester's account email. Approval is one-way: once a physician approves email sharing for a consult, the control locks and the approval cannot be withdrawn.
 
 For the current browser build, `BroadcastChannel` plus `localStorage` provides deterministic same-origin, cross-tab updates. Production replaces this client-side transport with authenticated request APIs, durable storage, server-side transition and policy validation, and a realtime delivery service. Authentication alone does not provide request transport or authorization enforcement.
 
@@ -292,7 +292,7 @@ GET  /api/connect/requests/:id/contact
 POST /api/connect/requests/:id/report
 ```
 
-`GET .../contact` must re-evaluate both consent grants at request time. Do not rely only on the stored state, because either HCP may revoke consent.
+`GET .../contact` must re-evaluate both consent grants at request time. Do not rely only on the stored state, because account eligibility or broader matching consent can change after approval.
 
 ## 12. Tests
 

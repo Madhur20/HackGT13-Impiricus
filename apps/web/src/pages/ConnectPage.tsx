@@ -42,7 +42,7 @@ export function ConnectPage() {
   const [params] = useSearchParams();
   const { persona, record } = useDemo();
   const auth = useAccountAuth();
-  const { requests, createRequest, setContactApproval, markRead } = useConsults();
+  const { requests, createRequest, approveContact, markRead } = useConsults();
   const [step, setStep] = useState(0);
   const [selection, setSelection] = useState<QuestionSelection>({
     therapeuticArea: "SGLT2 inhibitors",
@@ -170,16 +170,15 @@ export function ConnectPage() {
     record({ product: "Connect", action: "REQUEST_SENT", purpose: "PEER_MATCHING", decision: "allow", summary: "Sent one structured peer request without revealing contact information." });
   };
 
-  const toggleRequesterContact = () => {
-    if (!activeRequest) return;
-    const approved = !activeRequest.requesterContactApproved;
-    setContactApproval(activeRequest.id, "requester", approved);
+  const approveRequesterContact = () => {
+    if (!activeRequest || activeRequest.requesterContactApproved) return;
+    approveContact(activeRequest.id, "requester");
     record({
       product: "Connect",
       action: "CONTACT_CONSENT",
       purpose: "PEER_CONTACT",
-      decision: approved && activeRequest.recipientContactApproved ? "allow" : "deny",
-      summary: approved && activeRequest.recipientContactApproved ? "Both physicians approved email disclosure." : "Contact information remains hidden until both physicians approve.",
+      decision: activeRequest.recipientContactApproved ? "allow" : "deny",
+      summary: activeRequest.recipientContactApproved ? "Both physicians approved email disclosure." : "Contact information remains hidden until both physicians approve.",
     });
   };
 
@@ -256,7 +255,7 @@ export function ConnectPage() {
     {step === 3 && activeRequest?.answer ? <div className="response-layout">
       {showAnswerNotification ? <div className="answer-notification"><BellRing size={20} /><span><strong>{activeRequest.recipientName} answered your question</strong>The response is ready below.</span><button onClick={() => setShowAnswerNotification(false)} aria-label="Dismiss answer notification">×</button></div> : null}
       <section className="panel response-card"><div className="response-heading"><div className="peer-avatar small">{activeRequest.recipientName.split(" ").slice(1, 3).map((word) => word[0]).join("")}</div><div><span>Privacy-reviewed response from</span><h2>{activeRequest.recipientName}</h2><p>{activeRequest.recipientSpecialty}</p></div><StatusBadge tone="success">Answered</StatusBadge></div><div className="question-recap">{activeRequest.question}</div><div className="peer-answer-text"><span>Physician response</span><PeerAnswerBody text={responseText} /></div><div className="peer-experience-note"><Info size={16} />Peer experience, not medical advice from Impiricus or Relay.</div></section>
-      <aside className="panel contact-panel"><LockKeyhole size={24} /><h2>Continue as colleagues</h2><p>Contact information is revealed only after both physicians independently approve the selected channel.</p><div className="consent-row"><span><UserRoundCheck size={18} />Your approval</span><button className={activeRequest.requesterContactApproved ? "consent-button approved" : "consent-button"} onClick={toggleRequesterContact}>{activeRequest.requesterContactApproved ? "Approved" : "Approve email"}</button></div><div className="consent-row"><span><BadgeCheck size={18} />Peer approval</span><span className={activeRequest.recipientContactApproved ? "consent-state approved" : "consent-state"}>{activeRequest.recipientContactApproved ? "Approved" : "Waiting"}</span></div><LockedValue revealed={contactRevealed} value={recipientEmail} /><div className="contact-disclosure">Communication occurs outside Relay and is not monitored here. Professional, privacy, and organizational obligations continue to apply.</div></aside>
+      <aside className="panel contact-panel"><LockKeyhole size={24} /><h2>Continue as colleagues</h2><p>Contact information is revealed only after both physicians independently approve the selected channel. Approval is final and cannot be withdrawn.</p><div className="consent-row"><span><UserRoundCheck size={18} />Your approval</span><button className={activeRequest.requesterContactApproved ? "consent-button approved" : "consent-button"} onClick={approveRequesterContact} disabled={activeRequest.requesterContactApproved}>{activeRequest.requesterContactApproved ? <><Check size={12} /> Approved</> : "Approve email"}</button></div><div className="consent-row"><span><BadgeCheck size={18} />Peer approval</span><span className={activeRequest.recipientContactApproved ? "consent-state approved" : "consent-state"}>{activeRequest.recipientContactApproved ? "Approved" : "Waiting"}</span></div><LockedValue revealed={contactRevealed} value={recipientEmail} /><div className="contact-disclosure">Communication occurs outside Relay and is not monitored here. Professional, privacy, and organizational obligations continue to apply.</div></aside>
       <div className="response-actions"><button className="button secondary" onClick={startAnotherQuestion}>Start another question</button></div>
     </div> : null}
 

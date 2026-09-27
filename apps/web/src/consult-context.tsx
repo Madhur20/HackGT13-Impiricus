@@ -16,7 +16,8 @@ type ConsultContextValue = {
   createRequest: (input: NewRequest) => ConsultRequest;
   setStatus: (id: string, status: "accepted" | "declined") => void;
   submitAnswer: (id: string, responseText: string) => void;
-  setContactApproval: (id: string, side: "requester" | "recipient", approved: boolean) => void;
+  /** Email sharing approval is one-way: once a physician approves, it cannot be withdrawn. */
+  approveContact: (id: string, side: "requester" | "recipient") => void;
   markRead: (id: string, side: "requester" | "recipient") => void;
 };
 
@@ -117,13 +118,13 @@ export function ConsultProvider({ children }: { children: ReactNode }) {
     } : request));
   }, [commit]);
 
-  const setContactApproval = useCallback<ConsultContextValue["setContactApproval"]>((id, side, approved) => {
-    commit((current) => current.map((request) => request.id === id ? {
-      ...request,
-      requesterContactApproved: side === "requester" ? approved : request.requesterContactApproved,
-      recipientContactApproved: side === "recipient" ? approved : request.recipientContactApproved,
-      updatedAt: new Date().toISOString(),
-    } : request));
+  const approveContact = useCallback<ConsultContextValue["approveContact"]>((id, side) => {
+    commit((current) => current.map((request) => {
+      if (request.id !== id) return request;
+      const field = side === "requester" ? "requesterContactApproved" : "recipientContactApproved";
+      if (request[field]) return request;
+      return { ...request, [field]: true, updatedAt: new Date().toISOString() };
+    }));
   }, [commit]);
 
   const markRead = useCallback<ConsultContextValue["markRead"]>((id, side) => {
@@ -140,9 +141,9 @@ export function ConsultProvider({ children }: { children: ReactNode }) {
     createRequest,
     setStatus,
     submitAnswer,
-    setContactApproval,
+    approveContact,
     markRead,
-  }), [createRequest, markRead, requests, setContactApproval, setStatus, submitAnswer]);
+  }), [approveContact, createRequest, markRead, requests, setStatus, submitAnswer]);
 
   return <ConsultContext.Provider value={value}>{children}</ConsultContext.Provider>;
 }

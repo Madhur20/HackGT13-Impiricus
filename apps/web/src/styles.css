@@ -1072,3 +1072,6 @@ h1, h2, .welcome-copy h1, .page-heading h1, .editorial-heading h2, .change-narra
   .composer-row, .answer-section { grid-template-columns: 1fr; gap: 6px; }
   .answer-section-status > b { width: 100%; margin-left: 0; }
 }
+
+.consent-button { display: inline-flex; align-items: center; gap: 4px; }
+.consent-button:disabled { cursor: default; opacity: 1; }

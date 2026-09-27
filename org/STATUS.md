@@ -19,7 +19,7 @@ Plans remain broader than the prototype. Do not infer production integrations, l
 Harden the working prototype for the hackathon demo:
 
 1. Perform hands-on responsive QA in Chrome and on a phone-sized device.
-2. Add browser-level tests for sign-in, the two-account Connect → Inbox → Connect lifecycle, consent revocation, double-consent contact reveal, Mirror → Connect, and Updates → Connect.
+2. Add browser-level tests for sign-in, the two-account Connect → Inbox → Connect lifecycle, one-way email approval, double-consent contact reveal, Mirror → Connect, and Updates → Connect.
 3. Add a deterministic reset for browser-local account, consult, page, and audit state.
 4. After the input-pipeline work, evaluate the deferred Supabase Auth + Postgres + Realtime option for cross-device accounts, consult persistence, and notifications; it is a candidate, not yet an accepted architecture decision.
 5. Prepare deployment and a concise scripted demo run.
@@ -45,6 +45,12 @@ The next demo-hardening milestone is complete when:
 - the team has made and recorded the local-only versus hosted-demo decision.
 
 ## Iteration log
+
+### 2026-09-27 — One-way email approval and scroll reset on navigation
+
+- **Changed:** Email-sharing approval is now final: the consult context exposes `approveContact` instead of a boolean toggle, and the Inbox and Doctor Connect buttons lock as "Email approved"/"Approved" with copy stating approval cannot be withdrawn. Separately, the app shell scrolls the window to the top whenever the route changes, so each page opens at its top.
+- **Verified:** TypeScript validation passes. Headless Chrome: navigating from a scrolled page to Practice Mirror, Inbox, Doctor Connect, and Updates lands at `scrollY` 0 each time; after approving email in the Inbox the button is disabled and a forced second click leaves the stored approval `true`.
+- **Open:** Browser automation for these checks is not yet in the test suite.
 
 ### 2026-09-27 — Structured scaffold for the physician answer
 

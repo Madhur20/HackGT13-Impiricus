@@ -13,7 +13,7 @@ const SUGGESTION_HINTS: Partial<Record<AnswerSectionId, string>> = { approach: "
 export function InboxPage() {
   const { persona, record } = useDemo();
   const auth = useAccountAuth();
-  const { requests, setStatus, submitAnswer, setContactApproval, markRead } = useConsults();
+  const { requests, setStatus, submitAnswer, approveContact, markRead } = useConsults();
   const actorId = persona.id;
   const profiles = useMemo(() => readConnectCandidates().data, []);
   const recipient = profiles.find((profile) => profile.id === actorId);
@@ -153,7 +153,7 @@ export function InboxPage() {
             {selected.status === "answered" && <div className="answer-sent"><Check size={18} /><span><strong>Answer sent</strong>The requester received this response immediately.</span></div>}
           </div>}
 
-          {selected.status === "answered" && <><div className="recipient-contact"><div><LockKeyhole size={18} /><span><strong>Continue as colleagues</strong>Approve email sharing only if you want to continue outside Relay.</span></div><button className={selected.recipientContactApproved ? "consent-button approved" : "consent-button"} onClick={() => setContactApproval(selected.id, "recipient", !selected.recipientContactApproved)}>{selected.recipientContactApproved ? "Email approved" : "Approve email"}</button></div><LockedValue revealed={contactRevealed} value={requesterEmail} /></>}
+          {selected.status === "answered" && <><div className="recipient-contact"><div><LockKeyhole size={18} /><span><strong>Continue as colleagues</strong>Approve email sharing only if you want to continue outside Relay. Approval is final and cannot be withdrawn.</span></div><button className={selected.recipientContactApproved ? "consent-button approved" : "consent-button"} onClick={() => approveContact(selected.id, "recipient")} disabled={selected.recipientContactApproved}>{selected.recipientContactApproved ? <><Check size={12} /> Email approved</> : "Approve email"}</button></div><LockedValue revealed={contactRevealed} value={requesterEmail} /></>}
         </>}
       </section>
     </div>
