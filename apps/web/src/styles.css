@@ -1202,6 +1202,7 @@ h1, h2, .welcome-copy h1, .page-heading h1, .editorial-heading h2, .change-narra
 .connect-page .confirmation input { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 2px; accent-color: var(--dc-accent); }
 .connect-page .confirmation.required strong { display: block; margin-bottom: 2px; color: var(--dc-accent-ink); font-size: 13px; font-weight: 700; letter-spacing: 0; text-transform: none; }
 .connect-page .prior-choice { display: flex; justify-content: space-between; gap: 12px; margin-top: 32px; }
+.connect-page .step-back { display: flex; }
 
 /* Step 3 — choose a peer */
 .connect-page .draft-disposed { display: flex; align-items: flex-start; gap: 12px; padding: 16px 20px; border: 1px solid var(--dc-accent-edge); border-radius: 16px; color: var(--dc-text); background: var(--dc-accent-soft); box-shadow: none; font-size: 14px; line-height: 1.55; }
