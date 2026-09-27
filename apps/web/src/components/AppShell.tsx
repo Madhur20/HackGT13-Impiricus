@@ -5,6 +5,7 @@ import { useDemo } from "../demo-context";
 import { useAccountAuth } from "../auth-context";
 import { useConsults } from "../consult-context";
 import { getConsultBadgeCounts } from "../consult-state";
+import relayMark from "../assets/relay-mark.png";
 
 const physicianNavigation = [
   { to: "/", label: "Overview", icon: Home },
@@ -26,8 +27,8 @@ export function AppShell() {
       <header className="site-header">
         <div className="topbar">
           <NavLink className="brand" to="/" aria-label="Relay overview">
-            <span className="brand-mark" aria-hidden="true"><span /></span>
-            <span><strong>Relay</strong><small>for Impiricus</small></span>
+            <span className="brand-stack"><img className="brand-logo" src={relayMark} alt="" width={38} height={38} /><small>Impiricus</small></span>
+            <strong>Relay</strong>
           </NavLink>
 
           <nav className="nav-list" aria-label="Main navigation">
