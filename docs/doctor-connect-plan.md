@@ -112,7 +112,7 @@ The requester retains an account-specific pointer to the active consult. When th
 
 After an answer is sent, each physician independently approves email sharing. One approval leaves the contact value hidden on both sides. Once both approvals are active, the requester sees the responder's account email and the responder sees the requester's account email. Approval is one-way: once a physician approves email sharing for a consult, the control locks and the approval cannot be withdrawn.
 
-For the current browser build, `BroadcastChannel` plus `localStorage` provides deterministic same-origin, cross-tab updates. Production replaces this client-side transport with authenticated request APIs, durable storage, server-side transition and policy validation, and a realtime delivery service. Authentication alone does not provide request transport or authorization enforcement.
+For the current browser build, a shared Supabase demo table with Realtime push and a 4-second polling fallback delivers requests across devices, while `BroadcastChannel` plus `localStorage` provide same-browser updates and a local cache. The demo table has anonymous read/write access and holds synthetic records only. Production replaces this client-side transport with authenticated request APIs, durable storage, server-side transition and policy validation, and a realtime delivery service. Authentication alone does not provide request transport or authorization enforcement.
 
 ## 7. Reusable answer library
 

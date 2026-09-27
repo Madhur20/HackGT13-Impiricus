@@ -186,7 +186,7 @@ This layer **greatly reduces** the risk of physicians sharing protected health i
 
 Relay stores a doctor's **professional** information only — identity, specialty, expertise, prescribing history, region, affiliations, availability, help preferences, and successful-connection outcomes. It never stores patient names, records, diagnoses, or any patient-level data.
 
-- **In this prototype**, all physician and product data is deterministic **synthetic** data. Seed data lives in memory behind Relay's purpose-aware data broker. The local account session and structured consult lifecycle use browser `localStorage` plus `BroadcastChannel` so two seeded physician accounts can complete one same-browser flow; there is no hosted identity service or backend persistence. The prototype runs fully offline after dependencies are installed.
+- **In this prototype**, all physician and product data is deterministic **synthetic** data. Seed data lives in memory behind Relay's purpose-aware data broker. The local account session uses browser `localStorage`. The consult lifecycle syncs across devices through a shared Supabase demo table (Realtime plus polling) that the browser calls directly, so two seeded physician accounts can complete the flow on two laptops; there is no hosted identity service or custom backend. Everything except cross-device consult delivery runs offline after dependencies are installed.
 - **In production**, doctor data lives in two stores behind the same governance layer: a **document database** (MongoDB) for profiles, consent, provenance, requests, responses, policy, and audit records; and a **graph database** (Neo4j) for the Network Graph itself, because matching constantly follows relationships from a doctor to their expertise, evidence, availability, and prior successful connections.
 
 Every read and write passes through the data broker and a deterministic policy engine. Consent is purpose-specific, provenance is attached to every field, every decision is recorded in an append-only audit trail, and no patient-level data is ever stored.
@@ -234,13 +234,15 @@ The sign-up form activates an existing eligible physician profile by matching it
 - Elena: `1098765432`
 - Jordan: `1357924680`
 
-To exercise the current same-browser flow:
+To exercise the flow (same browser, or Elena and Maya on two different laptops):
 
 1. Sign in as Elena, send a Doctor Connect request to Maya, and sign out.
 2. Sign in as Maya, open Inbox, accept the request, submit the structured answer, and sign out.
 3. Sign back in as Elena. Doctor Connect shows an answer notification and opens directly to the final response step.
 
-The request, accounts, and active workflow survive account changes in the same browser through `BroadcastChannel` and `localStorage`.
+Requests reach the other laptop within about a second through the shared `consult_requests` table (Supabase Realtime, with a 4-second polling fallback). Within one browser, `BroadcastChannel` and `localStorage` keep tabs in sync. The table accepts anonymous reads and writes and must hold synthetic data only.
+
+To reset between demo runs, run `delete from consult_requests;` in the Supabase SQL editor for project `relay-hackgt13`, then clear site data (or `localStorage`) in each browser.
 
 This local account store is intentionally scoped to the hackathon browser build. A deployed environment must replace it with server-side authentication, protected sessions, credential verification, an authenticated API, and a realtime datastore.
 

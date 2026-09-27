@@ -20,6 +20,7 @@
     "@relay/peer-clustering": "0.1.0",
     "@relay/practice-mirror": "0.1.0",
     "@relay/relay-core": "0.1.0",
+    "@supabase/supabase-js": "^2.117.2",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
